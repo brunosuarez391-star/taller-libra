@@ -22,12 +22,14 @@
     "concurrently": "^9.1.2",
     "electron": "^33.3.1",
     "electron-builder": "^25.1.8",
+    "pngjs": "^7.0.0",
     "vite": "^6.0.7",
     "wait-on": "^8.0.1"
   },
   "build": {
     "appId": "com.libra.flota",
     "productName": "Libra Flota",
+    "icon": "assets/icon.png",
     "directories": {
       "output": "release"
     },
@@ -35,17 +37,28 @@
       "dist/**/*",
       "main.js",
       "preload.js",
+      "assets/icon.png",
       "package.json"
     ],
     "linux": {
       "target": ["AppImage", "deb"],
-      "category": "Utility"
+      "category": "Utility",
+      "icon": "assets/icon.png"
     },
     "win": {
-      "target": ["nsis"]
+      "target": ["nsis"],
+      "icon": "assets/icon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Libra Flota"
     },
     "mac": {
-      "target": ["dmg"]
+      "target": ["dmg"],
+      "icon": "assets/icon.png"
     }
   }
 }
