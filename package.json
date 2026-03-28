@@ -4,7 +4,7 @@
   "description": "Gestión de flota de camiones - Truck fleet management desktop app",
   "main": "main.js",
   "scripts": {
-    "dev": "concurrently \"vite\" \"wait-on http://localhost:5173 && electron .\"",
+    "dev": "concurrently \"vite\" \"wait-on http://localhost:5173 && electron . --no-sandbox --disable-gpu --disable-software-rasterizer\"",
     "build": "vite build && electron-builder",
     "build:vite": "vite build",
     "preview": "vite preview",
