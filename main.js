@@ -1,6 +1,12 @@
 const { app, BrowserWindow, ipcMain } = require('electron')
 const path = require('path')
 
+// Required for running as root or in headless/sandbox-less environments.
+// These must be set before app.whenReady().
+app.commandLine.appendSwitch('no-sandbox')
+app.commandLine.appendSwitch('disable-gpu')
+app.commandLine.appendSwitch('disable-software-rasterizer')
+
 // Detect dev mode: app.isPackaged is false when running via `electron .`
 const isDev = !app.isPackaged
 
