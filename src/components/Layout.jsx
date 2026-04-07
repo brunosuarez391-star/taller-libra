@@ -1,6 +1,7 @@
 import React from 'react'
 
 const NAV_ITEMS = [
+  { id: 'dashboard', label: 'Inicio', icon: '📊' },
   { id: 'flota', label: 'Flota', icon: '🚛' },
   { id: 'ordenes', label: 'Órdenes', icon: '📋' },
   { id: 'historial', label: 'Historial', icon: '🔍' },
@@ -23,7 +24,7 @@ export default function Layout({ seccionActiva, setSeccionActiva, children }) {
           </div>
           <div>
             <h1 className="text-white font-bold text-base leading-tight">Libra Fleet</h1>
-            <p className="text-white/50 text-[10px]">Gestión de Flota</p>
+            <p className="text-white/50 text-[10px]">Gestión de Flota · Módulo 1</p>
           </div>
         </div>
         <div className="text-white/40 text-[10px]">
@@ -32,23 +33,25 @@ export default function Layout({ seccionActiva, setSeccionActiva, children }) {
       </header>
 
       {/* Content */}
-      <main className="flex-1 p-4 pb-20 max-w-4xl mx-auto w-full">
+      <main className="flex-1 p-4 pb-24 max-w-4xl mx-auto w-full">
         {children}
       </main>
 
       {/* Bottom nav - mobile first */}
-      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 px-2 py-1.5 flex justify-around z-40 safe-area-pb">
+      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 px-1 py-1.5 flex justify-around z-40">
         {NAV_ITEMS.map(item => (
           <button
             key={item.id}
             onClick={() => setSeccionActiva(item.id)}
-            className={`flex flex-col items-center gap-0.5 px-4 py-1.5 rounded-xl transition-colors ${
+            className={`flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl transition-all ${
               seccionActiva === item.id
                 ? 'text-libra-dark'
                 : 'text-gray-400'
             }`}
           >
-            <span className="text-lg">{item.icon}</span>
+            <span className={`text-lg transition-transform ${seccionActiva === item.id ? 'scale-110' : ''}`}>
+              {item.icon}
+            </span>
             <span className={`text-[10px] font-semibold ${
               seccionActiva === item.id ? 'text-libra-dark' : 'text-gray-400'
             }`}>

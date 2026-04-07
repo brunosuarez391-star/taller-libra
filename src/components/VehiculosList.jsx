@@ -8,7 +8,7 @@ const ESTADOS = {
   inactivo: { label: 'Inactivo', bg: 'bg-gray-100', text: 'text-gray-500', dot: 'bg-gray-400' },
 }
 
-export default function VehiculosList({ vehiculos, setVehiculos }) {
+export default function VehiculosList({ vehiculos, setVehiculos, onToast }) {
   const [filtroCategoria, setFiltroCategoria] = useState('Todos')
   const [busqueda, setBusqueda] = useState('')
   const [mostrarForm, setMostrarForm] = useState(false)
@@ -30,8 +30,10 @@ export default function VehiculosList({ vehiculos, setVehiculos }) {
   function handleGuardar(vehiculo) {
     if (editando) {
       setVehiculos(prev => prev.map(v => v.id === vehiculo.id ? vehiculo : v))
+      onToast?.(`Vehículo ${vehiculo.codigo} actualizado`, 'exito')
     } else {
       setVehiculos(prev => [...prev, vehiculo])
+      onToast?.(`Vehículo ${vehiculo.codigo} creado`, 'exito')
     }
     setMostrarForm(false)
     setEditando(null)
@@ -45,6 +47,7 @@ export default function VehiculosList({ vehiculos, setVehiculos }) {
   function handleEliminar(id) {
     if (confirm('¿Estás seguro de eliminar este vehículo?')) {
       setVehiculos(prev => prev.filter(v => v.id !== id))
+      onToast?.(`Vehículo eliminado`, 'info')
     }
   }
 
