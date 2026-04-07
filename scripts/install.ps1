@@ -1,5 +1,5 @@
-# install.ps1 - Windows setup script for Libra Flota
-# Installs prerequisites via winget and sets up the project
+# install.ps1 - Script de instalación de Windows para Libra Flota
+# Instala los requisitos previos mediante winget y configura el proyecto
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
@@ -9,29 +9,29 @@ function Write-Step {
     Write-Host "`n=> $Message" -ForegroundColor Cyan
 }
 
-# Check if winget is available
+# Verificar si winget está disponible
 if (-not (Get-Command winget -ErrorAction SilentlyContinue)) {
-    Write-Host "ERROR: winget is not available. Please install App Installer from the Microsoft Store." -ForegroundColor Red
+    Write-Host "ERROR: winget no está disponible. Por favor, instale App Installer desde la Microsoft Store." -ForegroundColor Red
     exit 1
 }
 
-# Install PowerShell (latest stable)
-Write-Step "Installing PowerShell..."
+# Instalar PowerShell (última versión estable)
+Write-Step "Instalando PowerShell..."
 winget install --id Microsoft.PowerShell --source winget --accept-source-agreements --accept-package-agreements
 
-# Install Node.js LTS
-Write-Step "Installing Node.js LTS..."
+# Instalar Node.js LTS
+Write-Step "Instalando Node.js LTS..."
 winget install --id OpenJS.NodeJS.LTS --source winget --accept-source-agreements --accept-package-agreements
 
-# Install Git
-Write-Step "Installing Git..."
+# Instalar Git
+Write-Step "Instalando Git..."
 winget install --id Git.Git --source winget --accept-source-agreements --accept-package-agreements
 
-# Refresh PATH so newly installed tools are available
+# Actualizar PATH para que las herramientas recién instaladas estén disponibles
 $env:Path = [System.Environment]::GetEnvironmentVariable("Path", "Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path", "User")
 
-# Install npm dependencies
-Write-Step "Installing npm dependencies..."
+# Instalar dependencias de npm
+Write-Step "Instalando dependencias de npm..."
 npm install
 
-Write-Host "`nSetup complete! Run 'npm run dev' to start the app." -ForegroundColor Green
+Write-Host "`nInstalación completada! Ejecute 'npm run dev' para iniciar la aplicación." -ForegroundColor Green
