@@ -3,9 +3,9 @@ import VehiculoForm from './VehiculoForm'
 
 const CATEGORIAS = ['Todos', 'Camión Pesado', 'Tractor', 'Semirremolque']
 const ESTADOS = {
-  activo: { label: 'Activo', bg: 'bg-green-100', text: 'text-green-700', dot: 'bg-green-500' },
-  mantenimiento: { label: 'Mantenimiento', bg: 'bg-amber-100', text: 'text-amber-700', dot: 'bg-amber-500' },
-  inactivo: { label: 'Inactivo', bg: 'bg-gray-100', text: 'text-gray-500', dot: 'bg-gray-400' },
+  activo: { label: 'Activo', cls: 'bg-green-500/10 text-green-400 border-green-500/20' },
+  mantenimiento: { label: 'En taller', cls: 'bg-amber-500/10 text-amber-400 border-amber-500/20' },
+  inactivo: { label: 'Inactivo', cls: 'bg-muted/10 text-muted border-border' },
 }
 
 export default function VehiculosList({ vehiculos, setVehiculos, onToast }) {
@@ -22,10 +22,6 @@ export default function VehiculosList({ vehiculos, setVehiculos, onToast }) {
       (v.cliente || '').toLowerCase().includes(busqueda.toLowerCase())
     return matchCat && matchBusq
   })
-
-  const activos = vehiculos.filter(v => v.estado === 'activo').length
-  const enMant = vehiculos.filter(v => v.estado === 'mantenimiento').length
-  const kmTotal = vehiculos.reduce((s, v) => s + v.km_actuales, 0)
 
   function handleGuardar(vehiculo) {
     if (editando) {
@@ -47,132 +43,103 @@ export default function VehiculosList({ vehiculos, setVehiculos, onToast }) {
   function handleEliminar(id) {
     if (confirm('¿Estás seguro de eliminar este vehículo?')) {
       setVehiculos(prev => prev.filter(v => v.id !== id))
-      onToast?.(`Vehículo eliminado`, 'info')
+      onToast?.('Vehículo eliminado', 'info')
     }
   }
 
   return (
-    <div>
-      {/* Stats rápidas */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
-        <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
-          <div className="text-2xl font-bold text-libra-dark">{vehiculos.length}</div>
-          <div className="text-xs text-gray-500 uppercase tracking-wide">Total</div>
-        </div>
-        <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
-          <div className="text-2xl font-bold text-green-600">{activos}</div>
-          <div className="text-xs text-gray-500 uppercase tracking-wide">Activos</div>
-        </div>
-        <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
-          <div className="text-2xl font-bold text-amber-600">{enMant}</div>
-          <div className="text-xs text-gray-500 uppercase tracking-wide">Mantenimiento</div>
-        </div>
-        <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
-          <div className="text-2xl font-bold text-libra-mid text-lg">{kmTotal.toLocaleString('es-AR')}</div>
-          <div className="text-xs text-gray-500 uppercase tracking-wide">Km Totales</div>
-        </div>
+    <div className="animate-fade-in">
+      <div className="flex items-center justify-between mb-6">
+        <h1 className="text-2xl font-bold text-text">Camiones</h1>
+        <button
+          onClick={() => { setEditando(null); setMostrarForm(true) }}
+          className="bg-libra-mid text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-libra-dark transition-colors"
+        >
+          + Nuevo vehículo
+        </button>
       </div>
 
       {/* Filtros */}
-      <div className="flex flex-col sm:flex-row gap-3 mb-4">
+      <div className="flex gap-3 mb-5">
         <input
           type="text"
           placeholder="Buscar por código, modelo o cliente..."
           value={busqueda}
           onChange={e => setBusqueda(e.target.value)}
-          className="flex-1 px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-libra-mid/30 focus:border-libra-mid"
+          className="flex-1 bg-card border border-border rounded-lg px-4 py-2 text-sm text-text placeholder-muted focus:outline-none focus:border-libra-mid"
         />
-        <div className="flex gap-2 overflow-x-auto">
+        <div className="flex gap-1 bg-card border border-border rounded-lg p-1">
           {CATEGORIAS.map(cat => (
             <button
               key={cat}
               onClick={() => setFiltroCategoria(cat)}
-              className={`px-3 py-2 rounded-lg text-xs font-semibold whitespace-nowrap transition-colors ${
+              className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
                 filtroCategoria === cat
                   ? 'bg-libra-dark text-white'
-                  : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'
+                  : 'text-muted hover:text-text'
               }`}
             >
               {cat}
             </button>
           ))}
         </div>
-        <button
-          onClick={() => { setEditando(null); setMostrarForm(true) }}
-          className="bg-libra-mid text-white px-4 py-2.5 rounded-xl text-sm font-semibold hover:bg-libra-dark transition-colors whitespace-nowrap"
-        >
-          + Nuevo Vehículo
-        </button>
       </div>
 
-      {/* Lista de vehículos - cards mobile */}
-      <div className="space-y-3">
-        {filtrados.map(v => {
-          const est = ESTADOS[v.estado] || ESTADOS.inactivo
-          return (
-            <div key={v.id} className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
-              <div className="flex items-start justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 rounded-xl bg-libra-dark/10 flex items-center justify-center">
-                    <span className="text-lg font-bold text-libra-dark">{v.codigo}</span>
-                  </div>
-                  <div>
-                    <div className="font-semibold text-sm text-libra-dark">
-                      M.B. {v.modelo}
-                    </div>
-                    <div className="text-xs text-gray-500">
-                      {v.categoria} · {v.anio}
-                    </div>
-                  </div>
-                </div>
-                <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${est.bg} ${est.text}`}>
-                  <span className={`w-1.5 h-1.5 rounded-full ${est.dot}`} />
-                  {est.label}
-                </span>
-              </div>
-
-              <div className="mt-3 flex items-center justify-between">
-                <div className="flex gap-4">
-                  <div>
-                    <div className="text-xs text-gray-400">Kilometraje</div>
-                    <div className="text-sm font-semibold text-libra-mid">
-                      {v.km_actuales.toLocaleString('es-AR')} km
-                    </div>
-                  </div>
-                  {v.cliente && (
-                    <div>
-                      <div className="text-xs text-gray-400">Cliente</div>
-                      <div className="text-sm text-gray-700">{v.cliente}</div>
-                    </div>
-                  )}
-                </div>
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => handleEditar(v)}
-                    className="text-xs text-libra-mid hover:text-libra-dark font-medium px-2 py-1"
-                  >
-                    Editar
-                  </button>
-                  <button
-                    onClick={() => handleEliminar(v.id)}
-                    className="text-xs text-red-400 hover:text-red-600 font-medium px-2 py-1"
-                  >
-                    Eliminar
-                  </button>
-                </div>
-              </div>
-            </div>
-          )
-        })}
+      {/* Tabla */}
+      <div className="bg-card border border-border rounded-xl overflow-hidden">
+        <table className="w-full">
+          <thead>
+            <tr className="border-b border-border">
+              <th className="text-left px-5 py-3 text-xs font-semibold text-muted uppercase tracking-wider">Código</th>
+              <th className="text-left px-5 py-3 text-xs font-semibold text-muted uppercase tracking-wider">Modelo</th>
+              <th className="text-left px-5 py-3 text-xs font-semibold text-muted uppercase tracking-wider">Categoría</th>
+              <th className="text-left px-5 py-3 text-xs font-semibold text-muted uppercase tracking-wider">Kilómetros</th>
+              <th className="text-left px-5 py-3 text-xs font-semibold text-muted uppercase tracking-wider">Cliente</th>
+              <th className="text-left px-5 py-3 text-xs font-semibold text-muted uppercase tracking-wider">Estado</th>
+              <th className="text-right px-5 py-3 text-xs font-semibold text-muted uppercase tracking-wider">Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            {filtrados.map(v => {
+              const est = ESTADOS[v.estado] || ESTADOS.inactivo
+              return (
+                <tr key={v.id} className="border-b border-border/50 hover:bg-bg/50 transition-colors">
+                  <td className="px-5 py-3.5 text-sm font-semibold text-libra-light">{v.codigo}</td>
+                  <td className="px-5 py-3.5 text-sm text-text">{v.marca} {v.modelo}</td>
+                  <td className="px-5 py-3.5 text-sm text-muted">{v.categoria}</td>
+                  <td className="px-5 py-3.5 text-sm text-muted">{v.km_actuales.toLocaleString('es-AR')} km</td>
+                  <td className="px-5 py-3.5 text-sm text-muted">{v.cliente || '—'}</td>
+                  <td className="px-5 py-3.5">
+                    <span className={`inline-block px-2.5 py-1 rounded-md text-xs font-semibold border ${est.cls}`}>
+                      {est.label}
+                    </span>
+                  </td>
+                  <td className="px-5 py-3.5 text-right">
+                    <button
+                      onClick={() => handleEditar(v)}
+                      className="text-xs text-libra-mid hover:text-libra-light font-medium mr-3"
+                    >
+                      Editar
+                    </button>
+                    <button
+                      onClick={() => handleEliminar(v.id)}
+                      className="text-xs text-red-400/60 hover:text-red-400 font-medium"
+                    >
+                      Eliminar
+                    </button>
+                  </td>
+                </tr>
+              )
+            })}
+          </tbody>
+        </table>
+        {filtrados.length === 0 && (
+          <div className="text-center py-12 text-muted text-sm">
+            No se encontraron vehículos con esos filtros.
+          </div>
+        )}
       </div>
 
-      {filtrados.length === 0 && (
-        <div className="text-center py-12 text-gray-400">
-          No se encontraron vehículos con esos filtros.
-        </div>
-      )}
-
-      {/* Modal formulario */}
       {mostrarForm && (
         <VehiculoForm
           vehiculo={editando}

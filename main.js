@@ -5,12 +5,13 @@ const isDev = !app.isPackaged
 
 function createWindow() {
   const win = new BrowserWindow({
-    width: 420,
+    width: 1280,
     height: 800,
-    minWidth: 360,
+    minWidth: 900,
     minHeight: 600,
-    title: 'Libra Fleet',
+    title: 'Libra Flota',
     icon: path.join(__dirname, 'assets', 'icon.png'),
+    backgroundColor: '#0F172A',
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
@@ -19,7 +20,6 @@ function createWindow() {
     },
   })
 
-  // Quitar menú en producción
   if (!isDev) {
     win.setMenuBarVisibility(false)
   }
@@ -33,7 +33,6 @@ function createWindow() {
 
 app.whenReady().then(() => {
   createWindow()
-
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow()
   })
