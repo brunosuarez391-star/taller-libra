@@ -1,0 +1,26 @@
+@import "tailwindcss";
+
+@theme {
+  --color-libra-dark: #1F3864;
+  --color-libra-mid: #2E75B6;
+  --color-libra-light: #4A9AD9;
+  --color-libra-bg: #F0F4F8;
+  --color-libra-card: #FFFFFF;
+  --color-libra-text: #1E293B;
+  --color-libra-muted: #64748B;
+}
+
+@layer base {
+  body {
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    background-color: var(--color-libra-bg);
+    color: var(--color-libra-text);
+    margin: 0;
+  }
+}
+
+@media print {
+  body * { visibility: hidden; }
+  .etiqueta-print, .etiqueta-print * { visibility: visible; }
+  .etiqueta-print { position: absolute; top: 0; left: 0; }
+}

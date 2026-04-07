@@ -1,8 +1,9 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
+import tailwindcss from '@tailwindcss/vite'
 
 export default defineConfig({
-  plugins: [react()],
+  plugins: [react(), tailwindcss()],
 
   // CRITICAL for Electron production: assets must use relative paths.
   // With base: './', Vite emits <script src="./assets/index-xxx.js">
