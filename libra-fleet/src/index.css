@@ -1,0 +1,20 @@
+@import "tailwindcss";
+
+:root {
+  --libra-dark: #1F3864;
+  --libra-mid: #2E75B6;
+  --libra-light: #D6E4F0;
+}
+
+body {
+  margin: 0;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  background: #f8fafc;
+  color: #1e293b;
+}
+
+@media print {
+  body * { visibility: hidden; }
+  .print-area, .print-area * { visibility: visible; }
+  .print-area { position: absolute; left: 0; top: 0; }
+}
