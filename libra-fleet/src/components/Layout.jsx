@@ -6,6 +6,7 @@ const NAV = [
   { path: '/vehiculos', label: 'Flota', icon: '🚛' },
   { path: '/ordenes', label: 'OTs', icon: '📋' },
   { path: '/nueva-ot', label: '+ Nueva OT', icon: '➕' },
+  { path: '/presupuestos', label: 'Presupuestos', icon: '💰' },
 ]
 
 export default function Layout({ children }) {
