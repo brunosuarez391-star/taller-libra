@@ -168,7 +168,7 @@ export default function Ordenes({ ordenes, onRefresh }) {
 
               {/* Info */}
               <div className="mb-3">
-                <p className="font-bold">{ot.vehiculos?.codigo} — Mercedes-Benz {ot.vehiculos?.modelo} {ot.vehiculos?.tipo}</p>
+                <p className="font-bold">{ot.vehiculos?.codigo} — Mercedes-Benz {ot.vehiculos?.modelo} {ot.vehiculos?.tipo} {ot.patente ? <span className="ml-2 bg-[#D6E4F0] text-[#1F3864] px-2 py-0.5 rounded font-mono text-xs">{ot.patente}</span> : ''}</p>
                 <p className="text-sm text-slate-500">{ot.clientes?.nombre} | {ot.servicio_nombre}</p>
               </div>
 

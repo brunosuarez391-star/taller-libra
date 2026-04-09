@@ -14,6 +14,7 @@ export default function NuevaOT({ vehiculos, clientes, onCrear }) {
     cliente_id: '',
     vehiculo_id: '',
     km: '',
+    patente: '',
     servicio: 'service_20k',
     mecanico: 'Bruno Suarez',
     observaciones: '',
@@ -41,6 +42,7 @@ export default function NuevaOT({ vehiculos, clientes, onCrear }) {
         cliente_id: form.cliente_id,
         km_ingreso: km,
         km_proximo: km + 20000,
+        patente: form.patente.toUpperCase(),
         servicio_tipo: form.servicio,
         servicio_nombre: servicio.nombre,
         mecanico: form.mecanico,
@@ -57,6 +59,7 @@ export default function NuevaOT({ vehiculos, clientes, onCrear }) {
         codigo: vehiculo?.codigo,
         modelo: `${vehiculo?.marca} ${vehiculo?.modelo} ${vehiculo?.tipo}`,
         cliente: cliente?.nombre,
+        patente: form.patente.toUpperCase(),
         km,
         proximo_km: km + 20000,
         items: servicio.items,
@@ -79,6 +82,7 @@ export default function NuevaOT({ vehiculos, clientes, onCrear }) {
         <div className="bg-green-50 border border-green-200 rounded-xl p-5 mb-6">
           <h2 className="text-xl font-bold text-green-800 mb-2">OT Creada: {otCreada.ot_numero}</h2>
           <p className="text-green-700">{otCreada.codigo} — {otCreada.modelo} — {otCreada.cliente}</p>
+          {otCreada.patente && <p className="text-green-700 font-bold">Patente: {otCreada.patente}</p>}
           <p className="text-green-600 text-sm">KM: {otCreada.km?.toLocaleString()} | Próximo: {otCreada.proximo_km?.toLocaleString()} km</p>
           <p className="text-green-500 text-xs mt-1">Guardado en Supabase</p>
         </div>
@@ -121,6 +125,11 @@ export default function NuevaOT({ vehiculos, clientes, onCrear }) {
             <option value="">Seleccionar unidad...</option>
             {vehiculosCliente.map(v => <option key={v.id} value={v.id}>{v.codigo} — {v.marca} {v.modelo} {v.tipo} ({v.categoria})</option>)}
           </select>
+        </div>
+
+        <div className="mb-4">
+          <label className="block text-sm font-bold text-slate-700 mb-1">Patente</label>
+          <input type="text" value={form.patente} onChange={e => setForm({ ...form, patente: e.target.value.toUpperCase() })} placeholder="Ej: AB 123 CD" className="w-full border border-slate-300 rounded-lg px-4 py-2.5 focus:border-[#2E75B6] focus:outline-none uppercase font-mono text-lg tracking-wider" />
         </div>
 
         <div className="mb-4">

@@ -15,6 +15,7 @@ export default function EtiquetaService({ ot }) {
       {/* Datos vehículo */}
       <div className="border-b border-dashed border-slate-300 pb-1.5 mb-1.5">
         <p className="font-bold text-[11px]">{ot.modelo} — {ot.codigo}</p>
+        {ot.patente && <p className="font-bold text-[11px] text-[#2E75B6]">PAT: {ot.patente}</p>}
         <p>CLIENTE: {ot.cliente}</p>
       </div>
 
