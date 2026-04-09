@@ -7,6 +7,7 @@ const NAV = [
   { path: '/ordenes', label: 'OTs', icon: '📋' },
   { path: '/nueva-ot', label: '+ Nueva OT', icon: '➕' },
   { path: '/presupuestos', label: 'Presupuestos', icon: '💰' },
+  { path: '/facturacion', label: 'Facturación', icon: '🧾' },
 ]
 
 export default function Layout({ children }) {

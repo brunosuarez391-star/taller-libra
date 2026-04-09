@@ -6,6 +6,7 @@ import Vehiculos from './pages/Vehiculos'
 import Ordenes from './pages/Ordenes'
 import NuevaOT from './pages/NuevaOT'
 import Presupuestos from './pages/Presupuestos'
+import Facturacion from './pages/Facturacion'
 import VehiculoPublico from './pages/VehiculoPublico'
 import { getOrdenes, getVehiculos, getClientes } from './lib/api'
 
@@ -53,6 +54,7 @@ export default function App() {
               <Route path="/ordenes" element={<Ordenes ordenes={ordenes} onRefresh={cargarDatos} />} />
               <Route path="/nueva-ot" element={<NuevaOT vehiculos={vehiculos} clientes={clientes} onCrear={cargarDatos} />} />
               <Route path="/presupuestos" element={<Presupuestos vehiculos={vehiculos} clientes={clientes} />} />
+              <Route path="/facturacion" element={<Facturacion ordenes={ordenes} vehiculos={vehiculos} clientes={clientes} />} />
             </Routes>
           </Layout>
         } />
