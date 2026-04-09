@@ -57,6 +57,20 @@ export async function actualizarEstadoOT(otId, estado) {
   if (error) throw error
 }
 
+export async function actualizarOT(otId, campos) {
+  const { error } = await supabase.from('ordenes_trabajo').update({ ...campos, updated_at: new Date().toISOString() }).eq('id', otId)
+  if (error) throw error
+}
+
+export async function eliminarOT(otId) {
+  const { error: e1 } = await supabase.from('servicios_ot').delete().eq('ot_id', otId)
+  if (e1) throw e1
+  const { error: e2 } = await supabase.from('insumos_ot').delete().eq('ot_id', otId)
+  if (e2) throw e2
+  const { error: e3 } = await supabase.from('ordenes_trabajo').delete().eq('id', otId)
+  if (e3) throw e3
+}
+
 // ============ SERVICIOS OT ============
 export async function crearServiciosOT(otId, items) {
   const servicios = items.map(desc => ({ ot_id: otId, descripcion: desc, completado: false }))

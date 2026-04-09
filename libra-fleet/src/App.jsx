@@ -49,7 +49,7 @@ export default function App() {
           <Layout>
             <Routes>
               <Route path="/" element={<Dashboard ordenes={ordenes} vehiculos={vehiculos} />} />
-              <Route path="/vehiculos" element={<Vehiculos vehiculos={vehiculos} />} />
+              <Route path="/vehiculos" element={<Vehiculos vehiculos={vehiculos} onRefresh={cargarDatos} />} />
               <Route path="/ordenes" element={<Ordenes ordenes={ordenes} onRefresh={cargarDatos} />} />
               <Route path="/nueva-ot" element={<NuevaOT vehiculos={vehiculos} clientes={clientes} onCrear={cargarDatos} />} />
               <Route path="/presupuestos" element={<Presupuestos vehiculos={vehiculos} clientes={clientes} />} />
