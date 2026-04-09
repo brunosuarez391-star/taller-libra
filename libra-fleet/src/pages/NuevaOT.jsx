@@ -37,18 +37,22 @@ export default function NuevaOT({ vehiculos, clientes, onCrear }) {
       const km = parseInt(form.km) || 0
       const otNum = 'OT-' + new Date().getFullYear() + '-' + String(Math.floor(Math.random() * 999) + 1).padStart(3, '0')
 
+      const obs = [
+        form.patente ? `PAT: ${form.patente.toUpperCase()}` : '',
+        form.chofer ? `CHOFER: ${form.chofer}` : '',
+        form.observaciones || '',
+      ].filter(Boolean).join(' | ')
+
       const orden = {
         ot_numero: otNum,
         vehiculo_id: form.vehiculo_id,
         cliente_id: form.cliente_id,
         km_ingreso: km,
         km_proximo: km + 20000,
-        patente: form.patente.toUpperCase(),
-        chofer: form.chofer,
         servicio_tipo: form.servicio,
         servicio_nombre: servicio.nombre,
         mecanico: form.mecanico,
-        observaciones: form.observaciones,
+        observaciones: obs,
         estado: 'Ingresado',
       }
 
