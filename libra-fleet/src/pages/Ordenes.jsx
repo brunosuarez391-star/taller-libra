@@ -32,6 +32,8 @@ export default function Ordenes({ ordenes, onRefresh }) {
       km_ingreso: ot.km_ingreso,
       km_proximo: ot.km_proximo,
       mecanico: ot.mecanico,
+      chofer: ot.chofer || '',
+      patente: ot.patente || '',
       observaciones: ot.observaciones || '',
       servicio_nombre: ot.servicio_nombre,
     })
@@ -169,7 +171,7 @@ export default function Ordenes({ ordenes, onRefresh }) {
               {/* Info */}
               <div className="mb-3">
                 <p className="font-bold">{ot.vehiculos?.codigo} — Mercedes-Benz {ot.vehiculos?.modelo} {ot.vehiculos?.tipo} {ot.patente ? <span className="ml-2 bg-[#D6E4F0] text-[#1F3864] px-2 py-0.5 rounded font-mono text-xs">{ot.patente}</span> : ''}</p>
-                <p className="text-sm text-slate-500">{ot.clientes?.nombre} | {ot.servicio_nombre}</p>
+                <p className="text-sm text-slate-500">{ot.clientes?.nombre} | {ot.servicio_nombre}{ot.chofer ? ` | Chofer: ${ot.chofer}` : ''}</p>
               </div>
 
               {/* Modo edición */}
@@ -183,6 +185,16 @@ export default function Ordenes({ ordenes, onRefresh }) {
                     <div>
                       <label className="block text-xs font-bold text-slate-600 mb-1">KM Próximo Service</label>
                       <input type="number" value={editForm.km_proximo} onChange={e => setEditForm({ ...editForm, km_proximo: parseInt(e.target.value) || 0 })} className="w-full border rounded-lg px-3 py-2 text-sm" />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-bold text-slate-600 mb-1">Patente</label>
+                      <input type="text" value={editForm.patente} onChange={e => setEditForm({ ...editForm, patente: e.target.value.toUpperCase() })} placeholder="AB 123 CD" className="w-full border rounded-lg px-3 py-2 text-sm font-mono uppercase" />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-slate-600 mb-1">Chofer</label>
+                      <input type="text" value={editForm.chofer} onChange={e => setEditForm({ ...editForm, chofer: e.target.value })} placeholder="Nombre del chofer" className="w-full border rounded-lg px-3 py-2 text-sm" />
                     </div>
                   </div>
                   <div>

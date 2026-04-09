@@ -15,6 +15,7 @@ export default function NuevaOT({ vehiculos, clientes, onCrear }) {
     vehiculo_id: '',
     km: '',
     patente: '',
+    chofer: '',
     servicio: 'service_20k',
     mecanico: 'Bruno Suarez',
     observaciones: '',
@@ -43,6 +44,7 @@ export default function NuevaOT({ vehiculos, clientes, onCrear }) {
         km_ingreso: km,
         km_proximo: km + 20000,
         patente: form.patente.toUpperCase(),
+        chofer: form.chofer,
         servicio_tipo: form.servicio,
         servicio_nombre: servicio.nombre,
         mecanico: form.mecanico,
@@ -60,6 +62,7 @@ export default function NuevaOT({ vehiculos, clientes, onCrear }) {
         modelo: `${vehiculo?.marca} ${vehiculo?.modelo} ${vehiculo?.tipo}`,
         cliente: cliente?.nombre,
         patente: form.patente.toUpperCase(),
+        chofer: form.chofer,
         km,
         proximo_km: km + 20000,
         items: servicio.items,
@@ -127,9 +130,15 @@ export default function NuevaOT({ vehiculos, clientes, onCrear }) {
           </select>
         </div>
 
-        <div className="mb-4">
-          <label className="block text-sm font-bold text-slate-700 mb-1">Patente</label>
-          <input type="text" value={form.patente} onChange={e => setForm({ ...form, patente: e.target.value.toUpperCase() })} placeholder="Ej: AB 123 CD" className="w-full border border-slate-300 rounded-lg px-4 py-2.5 focus:border-[#2E75B6] focus:outline-none uppercase font-mono text-lg tracking-wider" />
+        <div className="grid grid-cols-2 gap-4 mb-4">
+          <div>
+            <label className="block text-sm font-bold text-slate-700 mb-1">Patente</label>
+            <input type="text" value={form.patente} onChange={e => setForm({ ...form, patente: e.target.value.toUpperCase() })} placeholder="Ej: AB 123 CD" className="w-full border border-slate-300 rounded-lg px-4 py-2.5 focus:border-[#2E75B6] focus:outline-none uppercase font-mono text-lg tracking-wider" />
+          </div>
+          <div>
+            <label className="block text-sm font-bold text-slate-700 mb-1">Chofer</label>
+            <input type="text" value={form.chofer} onChange={e => setForm({ ...form, chofer: e.target.value })} placeholder="Nombre del chofer" className="w-full border border-slate-300 rounded-lg px-4 py-2.5 focus:border-[#2E75B6] focus:outline-none" />
+          </div>
         </div>
 
         <div className="mb-4">
