@@ -28,19 +28,44 @@ export default function Ordenes({ ordenes, onRefresh }) {
 
   const handleEditar = (ot) => {
     setEditando(ot.id)
+    // Extraer patente y chofer de observaciones si existen
+    const obs = ot.observaciones || ''
+    const patMatch = obs.match(/PAT:\s*([^\|]+)/)
+    const choMatch = obs.match(/CHOFER:\s*([^\|]+)/)
+    const cleanObs = obs.replace(/PAT:\s*[^\|]+\|?\s*/g, '').replace(/CHOFER:\s*[^\|]+\|?\s*/g, '').trim()
     setEditForm({
       km_ingreso: ot.km_ingreso,
       km_proximo: ot.km_proximo,
       mecanico: ot.mecanico,
-      chofer: ot.chofer || '',
-      patente: ot.patente || '',
-      observaciones: ot.observaciones || '',
+      chofer: choMatch ? choMatch[1].trim() : '',
+      patente: patMatch ? patMatch[1].trim() : '',
+      observaciones: cleanObs,
       servicio_nombre: ot.servicio_nombre,
     })
   }
 
   const handleGuardarEdicion = async (otId) => {
     setLoading(true)
+    try {
+      const obs = [
+        editForm.patente ? `PAT: ${editForm.patente.toUpperCase()}` : '',
+        editForm.chofer ? `CHOFER: ${editForm.chofer}` : '',
+        editForm.observaciones || '',
+      ].filter(Boolean).join(' | ')
+      await actualizarOT(otId, {
+        km_ingreso: editForm.km_ingreso,
+        km_proximo: editForm.km_proximo,
+        mecanico: editForm.mecanico,
+        observaciones: obs,
+        servicio_nombre: editForm.servicio_nombre,
+      })
+      setEditando(null)
+      await onRefresh()
+    } catch (err) {
+      alert('Error guardando: ' + err.message)
+    }
+    setLoading(false)
+  }
     try {
       await actualizarOT(otId, editForm)
       setEditando(null)
