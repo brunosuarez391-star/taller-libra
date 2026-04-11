@@ -11,7 +11,7 @@
 
 import Anthropic from "@anthropic-ai/sdk";
 
-const client = new Anthropic();
+const client = new Anthropic({ timeout: 60_000 });
 
 const SYSTEM_PROMPT = `Sos un agente de desarrollo experto para **Libra Fleet**, el sistema de gestión de flota de camiones de Libra Servicios Industriales (Comodoro Rivadavia, Chubut, Argentina).
 

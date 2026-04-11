@@ -9,7 +9,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { createInterface } from "readline";
 
-const client = new Anthropic();
+const client = new Anthropic({ timeout: 120_000 });
 
 // Load config from env
 const AGENT_ID = process.env.AGENT_ID;
@@ -64,7 +64,7 @@ async function createSession() {
 
 async function sendAndStream(sessionId, text) {
   // Stream-first: open stream before sending
-  const stream = await client.beta.sessions.stream(sessionId);
+  const stream = await client.beta.sessions.events.stream(sessionId);
 
   await client.beta.sessions.events.send(sessionId, {
     events: [

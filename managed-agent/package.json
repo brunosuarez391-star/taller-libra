@@ -5,11 +5,11 @@
   "type": "module",
   "description": "Claude Managed Agent for Libra Fleet — truck fleet management assistant",
   "scripts": {
-    "setup": "node setup.js",
-    "start": "node run.js",
-    "chat": "node run.js"
+    "setup": "node --env-file=.env setup.js",
+    "start": "node --env-file=.env run.js",
+    "chat": "node --env-file=.env run.js"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.52.0"
+    "@anthropic-ai/sdk": "^0.88.0"
   }
 }
