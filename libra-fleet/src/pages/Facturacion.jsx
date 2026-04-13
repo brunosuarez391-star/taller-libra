@@ -255,13 +255,13 @@ export default function Facturacion({ ordenes, vehiculos, clientes }) {
 
   return (
     <div>
-      <h2 className="text-2xl font-bold text-[#1F3864] mb-6">Facturación Mensual</h2>
+      <h2 className="text-2xl font-bold text-[#1F3864] dark:text-blue-300 mb-6">Facturación Mensual</h2>
 
       {/* Filtros */}
       <div className="flex gap-4 mb-6 flex-wrap">
         <div>
           <label className="block text-xs font-bold text-slate-500 mb-1">Mes</label>
-          <select value={mesSeleccionado} onChange={e => setMesSeleccionado(e.target.value)} className="border border-slate-300 rounded-lg px-4 py-2 focus:border-[#2E75B6] focus:outline-none">
+          <select value={mesSeleccionado} onChange={e => setMesSeleccionado(e.target.value)} className="border border-slate-300 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100 rounded-lg px-4 py-2 focus:border-[#2E75B6] focus:outline-none">
             {mesesDisponibles.map(m => (
               <option key={m} value={m}>{new Date(m + '-15').toLocaleString('es-AR', { month: 'long', year: 'numeric' })}</option>
             ))}
@@ -269,7 +269,7 @@ export default function Facturacion({ ordenes, vehiculos, clientes }) {
         </div>
         <div>
           <label className="block text-xs font-bold text-slate-500 mb-1">Cliente</label>
-          <select value={clienteId} onChange={e => setClienteId(e.target.value)} className="border border-slate-300 rounded-lg px-4 py-2 focus:border-[#2E75B6] focus:outline-none">
+          <select value={clienteId} onChange={e => setClienteId(e.target.value)} className="border border-slate-300 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100 rounded-lg px-4 py-2 focus:border-[#2E75B6] focus:outline-none">
             <option value="todos">Todos los clientes</option>
             {clientes.map(c => <option key={c.id} value={c.id}>{c.nombre}</option>)}
           </select>
@@ -297,14 +297,14 @@ export default function Facturacion({ ordenes, vehiculos, clientes }) {
       </div>
 
       {otsFiltradas.length === 0 ? (
-        <div className="bg-white rounded-xl shadow p-8 text-center text-slate-400">
+        <div className="bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 rounded-xl shadow p-8 text-center text-slate-400">
           No hay OTs en {mesNombre}
         </div>
       ) : (
         <>
           {/* Resumen por cliente */}
           {resumenPorCliente.map((grupo) => (
-            <div key={grupo.cliente} className="bg-white rounded-xl shadow mb-4 overflow-hidden">
+            <div key={grupo.cliente} className="bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 rounded-xl shadow mb-4 overflow-hidden">
               <div className="bg-[#1F3864] text-white px-5 py-3 flex justify-between items-center cursor-pointer" onClick={() => setVerDetalle(verDetalle === grupo.cliente ? null : grupo.cliente)}>
                 <div>
                   <h3 className="font-bold text-lg">{grupo.cliente}</h3>
@@ -360,7 +360,7 @@ export default function Facturacion({ ordenes, vehiculos, clientes }) {
           ))}
 
           {/* Total general */}
-          <div className="bg-white rounded-xl shadow p-5 mt-4">
+          <div className="bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 rounded-xl shadow p-5 mt-4">
             <div className="flex justify-end">
               <div className="w-80">
                 <div className="flex justify-between py-2 border-b"><span>Total M.O.:</span><span className="font-mono">{formatARS(resumenPorCliente.reduce((s, g) => s + g.totalMO, 0))}</span></div>
