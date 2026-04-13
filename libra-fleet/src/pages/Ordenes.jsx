@@ -66,15 +66,6 @@ export default function Ordenes({ ordenes, onRefresh }) {
     }
     setLoading(false)
   }
-    try {
-      await actualizarOT(otId, editForm)
-      setEditando(null)
-      await onRefresh()
-    } catch (err) {
-      alert('Error guardando: ' + err.message)
-    }
-    setLoading(false)
-  }
 
   const handleEliminar = async (otId) => {
     setLoading(true)
