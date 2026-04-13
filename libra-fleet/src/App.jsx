@@ -7,6 +7,7 @@ import Ordenes from './pages/Ordenes'
 import NuevaOT from './pages/NuevaOT'
 import Presupuestos from './pages/Presupuestos'
 import Facturacion from './pages/Facturacion'
+import SistemaIA from './pages/SistemaIA'
 import VehiculoPublico from './pages/VehiculoPublico'
 import { getOrdenes, getVehiculos, getClientes } from './lib/api'
 
@@ -55,6 +56,7 @@ export default function App() {
               <Route path="/nueva-ot" element={<NuevaOT vehiculos={vehiculos} clientes={clientes} onCrear={cargarDatos} />} />
               <Route path="/presupuestos" element={<Presupuestos vehiculos={vehiculos} clientes={clientes} />} />
               <Route path="/facturacion" element={<Facturacion ordenes={ordenes} vehiculos={vehiculos} clientes={clientes} />} />
+              <Route path="/sistema-ia" element={<SistemaIA vehiculos={vehiculos} ordenes={ordenes} clientes={clientes} />} />
             </Routes>
           </Layout>
         } />
