@@ -4,3 +4,5 @@ release/
 *.log
 .DS_Store
 libra-fleet/.env
+managed-agent/.env
+managed-agent/node_modules/

@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import { actualizarKm } from '../lib/api'
 
 export default function Vehiculos({ vehiculos, onRefresh }) {
@@ -69,6 +70,14 @@ export default function Vehiculos({ vehiculos, onRefresh }) {
                 </div>
               )}
             </div>
+
+            {/* Link a detalle */}
+            <Link
+              to={`/vehiculo/${v.codigo}`}
+              className="mt-3 block text-center bg-[#D6E4F0] text-[#1F3864] py-2 rounded-lg text-xs font-bold hover:bg-[#2E75B6] hover:text-white transition-colors"
+            >
+              Ver historial completo →
+            </Link>
           </div>
         ))}
       </div>

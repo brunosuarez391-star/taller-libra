@@ -1,5 +1,6 @@
 import { Link, useLocation } from 'react-router-dom'
 import { EMPRESA } from '../lib/data'
+import BusquedaGlobal from './BusquedaGlobal'
 
 const NAV = [
   { path: '/', label: 'Dashboard', icon: '📊' },
@@ -7,21 +8,26 @@ const NAV = [
   { path: '/ordenes', label: 'OTs', icon: '📋' },
   { path: '/nueva-ot', label: '+ Nueva OT', icon: '➕' },
   { path: '/presupuestos', label: 'Presupuestos', icon: '💰' },
+  { path: '/facturacion', label: 'Facturación', icon: '🧾' },
+  { path: '/sistema-ia', label: 'Sistema IA', icon: '🤖' },
 ]
 
-export default function Layout({ children }) {
+export default function Layout({ children, vehiculos = [], ordenes = [], clientes = [] }) {
   const { pathname } = useLocation()
 
   return (
     <div className="min-h-screen bg-slate-50">
       {/* Header */}
       <header className="bg-[#1F3864] text-white shadow-lg">
-        <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
-          <div>
+        <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between gap-4">
+          <div className="shrink-0">
             <h1 className="text-xl font-bold tracking-tight">LIBRA FLEET</h1>
-            <p className="text-xs text-blue-200">{EMPRESA.nombre}</p>
+            <p className="text-xs text-blue-200 hidden sm:block">{EMPRESA.nombre}</p>
           </div>
-          <div className="text-right text-xs text-blue-200 hidden sm:block">
+          <div className="flex-1 max-w-md">
+            <BusquedaGlobal vehiculos={vehiculos} ordenes={ordenes} clientes={clientes} />
+          </div>
+          <div className="text-right text-xs text-blue-200 hidden lg:block shrink-0">
             <p>{EMPRESA.direccion}</p>
             <p>Tel: {EMPRESA.tel}</p>
           </div>
