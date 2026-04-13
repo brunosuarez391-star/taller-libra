@@ -1,6 +1,7 @@
 import { Link, useLocation } from 'react-router-dom'
 import { EMPRESA } from '../lib/data'
 import BusquedaGlobal from './BusquedaGlobal'
+import ThemeToggle from './ThemeToggle'
 
 const NAV = [
   { path: '/', label: 'Dashboard', icon: '📊' },
@@ -16,9 +17,9 @@ export default function Layout({ children, vehiculos = [], ordenes = [], cliente
   const { pathname } = useLocation()
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-900 transition-colors">
       {/* Header */}
-      <header className="bg-[#1F3864] text-white shadow-lg">
+      <header className="bg-[#1F3864] dark:bg-slate-950 text-white shadow-lg border-b border-transparent dark:border-slate-800">
         <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between gap-4">
           <div className="shrink-0">
             <h1 className="text-xl font-bold tracking-tight">LIBRA FLEET</h1>
@@ -27,15 +28,18 @@ export default function Layout({ children, vehiculos = [], ordenes = [], cliente
           <div className="flex-1 max-w-md">
             <BusquedaGlobal vehiculos={vehiculos} ordenes={ordenes} clientes={clientes} />
           </div>
-          <div className="text-right text-xs text-blue-200 hidden lg:block shrink-0">
-            <p>{EMPRESA.direccion}</p>
-            <p>Tel: {EMPRESA.tel}</p>
+          <div className="flex items-center gap-3 shrink-0">
+            <ThemeToggle />
+            <div className="text-right text-xs text-blue-200 hidden lg:block">
+              <p>{EMPRESA.direccion}</p>
+              <p>Tel: {EMPRESA.tel}</p>
+            </div>
           </div>
         </div>
       </header>
 
       {/* Navigation */}
-      <nav className="bg-[#2E75B6] text-white sticky top-0 z-50 shadow">
+      <nav className="bg-[#2E75B6] dark:bg-slate-800 text-white sticky top-0 z-40 shadow">
         <div className="max-w-7xl mx-auto px-4 flex gap-1 overflow-x-auto">
           {NAV.map(({ path, label, icon }) => (
             <Link
@@ -43,8 +47,8 @@ export default function Layout({ children, vehiculos = [], ordenes = [], cliente
               to={path}
               className={`px-4 py-3 text-sm font-medium whitespace-nowrap transition-colors ${
                 pathname === path
-                  ? 'bg-[#1F3864] text-white'
-                  : 'text-blue-100 hover:bg-[#1F3864]/50'
+                  ? 'bg-[#1F3864] dark:bg-slate-950 text-white'
+                  : 'text-blue-100 hover:bg-[#1F3864]/50 dark:hover:bg-slate-700'
               }`}
             >
               <span className="mr-1">{icon}</span>
@@ -60,7 +64,7 @@ export default function Layout({ children, vehiculos = [], ordenes = [], cliente
       </main>
 
       {/* Footer */}
-      <footer className="bg-[#D6E4F0] text-center text-xs text-slate-500 py-3 mt-8">
+      <footer className="bg-[#D6E4F0] dark:bg-slate-800 text-center text-xs text-slate-500 dark:text-slate-400 py-3 mt-8 border-t border-transparent dark:border-slate-700">
         {EMPRESA.nombre} | {EMPRESA.ciudad} | {EMPRESA.tel}
       </footer>
     </div>

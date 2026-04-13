@@ -117,21 +117,21 @@ export default function BusquedaGlobal({ vehiculos = [], ordenes = [], clientes 
 
       {/* Dropdown de resultados */}
       {mostrarDropdown && (
-        <div className="absolute top-full mt-2 left-0 right-0 bg-white rounded-xl shadow-2xl border border-slate-200 max-h-[70vh] overflow-y-auto z-50">
+        <div className="absolute top-full mt-2 left-0 right-0 bg-white dark:bg-slate-800 rounded-xl shadow-2xl border border-slate-200 dark:border-slate-700 max-h-[70vh] overflow-y-auto z-50">
           {!hayQuery ? (
-            <div className="p-4 text-center text-slate-400 text-sm">
+            <div className="p-4 text-center text-slate-400 dark:text-slate-500 text-sm">
               <p className="mb-2">Empezá a escribir para buscar...</p>
               <p className="text-xs">OTs · Vehículos · Clientes · Patentes</p>
             </div>
           ) : !hayResultados ? (
-            <div className="p-4 text-center text-slate-400 text-sm">
+            <div className="p-4 text-center text-slate-400 dark:text-slate-500 text-sm">
               No se encontraron resultados para "<strong>{query}</strong>"
             </div>
           ) : (
             <>
               {vehiculosMatch.length > 0 && (
-                <div className="border-b border-slate-100">
-                  <div className="px-3 py-2 bg-slate-50 text-xs font-bold text-slate-500 uppercase">
+                <div className="border-b border-slate-100 dark:border-slate-700">
+                  <div className="px-3 py-2 bg-slate-50 dark:bg-slate-900 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase">
                     🚛 Vehículos ({vehiculosMatch.length})
                   </div>
                   {vehiculosMatch.map(v => (
@@ -139,16 +139,16 @@ export default function BusquedaGlobal({ vehiculos = [], ordenes = [], clientes 
                       key={v.id}
                       to={`/vehiculo/${v.codigo}`}
                       onClick={limpiar}
-                      className="block px-3 py-2 hover:bg-slate-50 transition border-b border-slate-50 last:border-0"
+                      className="block px-3 py-2 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition border-b border-slate-50 dark:border-slate-700/50 last:border-0"
                     >
                       <div className="flex justify-between items-center">
                         <div>
-                          <p className="font-mono font-bold text-[#1F3864] text-sm">{v.codigo}</p>
-                          <p className="text-xs text-slate-500">{v.marca} {v.modelo} {v.tipo}</p>
+                          <p className="font-mono font-bold text-[#1F3864] dark:text-blue-300 text-sm">{v.codigo}</p>
+                          <p className="text-xs text-slate-500 dark:text-slate-400">{v.marca} {v.modelo} {v.tipo}</p>
                         </div>
                         <div className="text-right">
-                          <p className="text-xs text-slate-600">{v.clientes?.nombre}</p>
-                          <p className="text-xs text-slate-400">{v.km_actuales?.toLocaleString('es-AR')} km</p>
+                          <p className="text-xs text-slate-600 dark:text-slate-300">{v.clientes?.nombre}</p>
+                          <p className="text-xs text-slate-400 dark:text-slate-500">{v.km_actuales?.toLocaleString('es-AR')} km</p>
                         </div>
                       </div>
                     </Link>
@@ -157,8 +157,8 @@ export default function BusquedaGlobal({ vehiculos = [], ordenes = [], clientes 
               )}
 
               {ordenesMatch.length > 0 && (
-                <div className="border-b border-slate-100">
-                  <div className="px-3 py-2 bg-slate-50 text-xs font-bold text-slate-500 uppercase">
+                <div className="border-b border-slate-100 dark:border-slate-700">
+                  <div className="px-3 py-2 bg-slate-50 dark:bg-slate-900 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase">
                     📋 Órdenes de Trabajo ({ordenesMatch.length})
                   </div>
                   {ordenesMatch.map(ot => (
@@ -166,24 +166,24 @@ export default function BusquedaGlobal({ vehiculos = [], ordenes = [], clientes 
                       key={ot.id}
                       to="/ordenes"
                       onClick={limpiar}
-                      className="block px-3 py-2 hover:bg-slate-50 transition border-b border-slate-50 last:border-0"
+                      className="block px-3 py-2 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition border-b border-slate-50 dark:border-slate-700/50 last:border-0"
                     >
                       <div className="flex justify-between items-center">
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2">
-                            <p className="font-mono font-bold text-[#1F3864] text-sm">{ot.ot_numero}</p>
+                            <p className="font-mono font-bold text-[#1F3864] dark:text-blue-300 text-sm">{ot.ot_numero}</p>
                             <span className={`px-1.5 py-0.5 text-[10px] font-bold rounded ${
-                              ot.estado === 'Finalizado' ? 'bg-green-100 text-green-700' :
-                              ot.estado === 'En proceso' ? 'bg-blue-100 text-blue-700' :
-                              ot.estado === 'Ingresado' ? 'bg-yellow-100 text-yellow-700' :
-                              'bg-slate-100 text-slate-600'
+                              ot.estado === 'Finalizado' ? 'bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-300' :
+                              ot.estado === 'En proceso' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300' :
+                              ot.estado === 'Ingresado' ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/50 dark:text-yellow-300' :
+                              'bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300'
                             }`}>{ot.estado}</span>
                           </div>
-                          <p className="text-xs text-slate-500 truncate">
+                          <p className="text-xs text-slate-500 dark:text-slate-400 truncate">
                             {ot.vehiculos?.codigo} · {ot.clientes?.nombre} · {ot.servicio_nombre}
                           </p>
                         </div>
-                        <p className="text-xs text-slate-400 whitespace-nowrap ml-2">
+                        <p className="text-xs text-slate-400 dark:text-slate-500 whitespace-nowrap ml-2">
                           {new Date(ot.created_at).toLocaleDateString('es-AR')}
                         </p>
                       </div>
@@ -194,16 +194,16 @@ export default function BusquedaGlobal({ vehiculos = [], ordenes = [], clientes 
 
               {clientesMatch.length > 0 && (
                 <div>
-                  <div className="px-3 py-2 bg-slate-50 text-xs font-bold text-slate-500 uppercase">
+                  <div className="px-3 py-2 bg-slate-50 dark:bg-slate-900 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase">
                     👥 Clientes ({clientesMatch.length})
                   </div>
                   {clientesMatch.map(c => (
                     <div
                       key={c.id}
-                      className="px-3 py-2 border-b border-slate-50 last:border-0"
+                      className="px-3 py-2 border-b border-slate-50 dark:border-slate-700/50 last:border-0"
                     >
-                      <p className="font-bold text-[#1F3864] text-sm">{c.nombre}</p>
-                      <p className="text-xs text-slate-500">
+                      <p className="font-bold text-[#1F3864] dark:text-blue-300 text-sm">{c.nombre}</p>
+                      <p className="text-xs text-slate-500 dark:text-slate-400">
                         {c.contacto && <span>{c.contacto}</span>}
                         {c.telefono && <span className="ml-2">📞 {c.telefono}</span>}
                       </p>

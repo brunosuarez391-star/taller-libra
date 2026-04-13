@@ -35,21 +35,21 @@ export default function Presupuestos({ vehiculos, clientes }) {
 
   return (
     <div>
-      <h2 className="text-2xl font-bold text-[#1F3864] mb-6">Presupuestos Flota</h2>
+      <h2 className="text-2xl font-bold text-[#1F3864] dark:text-blue-300 mb-6">Presupuestos Flota</h2>
 
       {!presupuesto ? (
-        <div className="bg-white rounded-xl shadow p-6 max-w-2xl">
+        <div className="bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 rounded-xl shadow p-6 max-w-2xl">
           <div className="mb-4">
-            <label className="block text-sm font-bold text-slate-700 mb-1">Cliente</label>
-            <select value={clienteId} onChange={e => setClienteId(e.target.value)} className="w-full border border-slate-300 rounded-lg px-4 py-2.5 focus:border-[#2E75B6] focus:outline-none">
+            <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">Cliente</label>
+            <select value={clienteId} onChange={e => setClienteId(e.target.value)} className="w-full border border-slate-300 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100 rounded-lg px-4 py-2.5 focus:border-[#2E75B6] focus:outline-none">
               <option value="">Seleccionar cliente...</option>
               {clientes.map(c => <option key={c.id} value={c.id}>{c.nombre}</option>)}
             </select>
           </div>
 
           <div className="mb-4">
-            <label className="block text-sm font-bold text-slate-700 mb-1">Tipo de Service</label>
-            <select value={servicio} onChange={e => setServicio(e.target.value)} className="w-full border border-slate-300 rounded-lg px-4 py-2.5 focus:border-[#2E75B6] focus:outline-none">
+            <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">Tipo de Service</label>
+            <select value={servicio} onChange={e => setServicio(e.target.value)} className="w-full border border-slate-300 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100 rounded-lg px-4 py-2.5 focus:border-[#2E75B6] focus:outline-none">
               {Object.entries(SERVICIOS).map(([key, s]) => <option key={key} value={key}>{s.nombre} ({s.tiempo})</option>)}
             </select>
           </div>

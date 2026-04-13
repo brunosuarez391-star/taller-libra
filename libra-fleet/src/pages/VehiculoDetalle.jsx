@@ -27,7 +27,7 @@ export default function VehiculoDetalle({ vehiculos, ordenes, onRefresh }) {
 
   if (!vehiculo) {
     return (
-      <div className="bg-white rounded-xl shadow p-8 text-center">
+      <div className="bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 rounded-xl shadow p-8 text-center">
         <p className="text-slate-500 mb-4">Vehículo <strong>{codigo}</strong> no encontrado</p>
         <Link to="/vehiculos" className="text-[#2E75B6] hover:underline">← Volver a la flota</Link>
       </div>
@@ -113,11 +113,11 @@ export default function VehiculoDetalle({ vehiculos, ordenes, onRefresh }) {
       </div>
 
       {/* Header con datos del vehículo */}
-      <div className="bg-white rounded-xl shadow p-6 mb-6">
+      <div className="bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 rounded-xl shadow p-6 mb-6">
         <div className="flex flex-col md:flex-row justify-between items-start gap-4">
           <div>
             <div className="flex items-center gap-3 mb-2">
-              <h1 className="text-3xl font-bold text-[#1F3864]">{vehiculo.codigo}</h1>
+              <h1 className="text-3xl font-bold text-[#1F3864] dark:text-blue-300">{vehiculo.codigo}</h1>
               <span className={`px-3 py-1 rounded-full text-xs font-bold ${bgEstado} ${textoEstado} border ${bordeEstado}`}>
                 {estadoService}
               </span>
@@ -171,7 +171,7 @@ export default function VehiculoDetalle({ vehiculos, ordenes, onRefresh }) {
         {editKm && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => setEditKm(false)}>
             <div className="bg-white rounded-xl p-6 max-w-sm w-full" onClick={e => e.stopPropagation()}>
-              <h3 className="text-lg font-bold text-[#1F3864] mb-4">Actualizar KM de {vehiculo.codigo}</h3>
+              <h3 className="text-lg font-bold text-[#1F3864] dark:text-blue-300 mb-4">Actualizar KM de {vehiculo.codigo}</h3>
               <input
                 type="number"
                 value={kmValue}
@@ -202,15 +202,15 @@ export default function VehiculoDetalle({ vehiculos, ordenes, onRefresh }) {
 
       {/* KPIs */}
       <div className="grid grid-cols-3 gap-4 mb-6">
-        <div className="bg-white rounded-xl shadow p-4 text-center">
-          <p className="text-3xl font-bold text-[#1F3864]">{totalOTs}</p>
+        <div className="bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 rounded-xl shadow p-4 text-center">
+          <p className="text-3xl font-bold text-[#1F3864] dark:text-blue-300">{totalOTs}</p>
           <p className="text-xs text-slate-500">OTs totales</p>
         </div>
-        <div className="bg-white rounded-xl shadow p-4 text-center">
+        <div className="bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 rounded-xl shadow p-4 text-center">
           <p className="text-3xl font-bold text-[#2E75B6]">{otsActivas}</p>
           <p className="text-xs text-slate-500">En curso</p>
         </div>
-        <div className="bg-white rounded-xl shadow p-4 text-center">
+        <div className="bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 rounded-xl shadow p-4 text-center">
           <p className="text-3xl font-bold text-green-600">{otsTerminadas}</p>
           <p className="text-xs text-slate-500">Terminadas</p>
         </div>
@@ -218,8 +218,8 @@ export default function VehiculoDetalle({ vehiculos, ordenes, onRefresh }) {
 
       {/* Gráfico de km (barras simples) */}
       {historicoKm.length > 0 && (
-        <div className="bg-white rounded-xl shadow p-5 mb-6">
-          <h3 className="text-lg font-bold text-[#1F3864] mb-4">📈 Evolución de kilometraje</h3>
+        <div className="bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 rounded-xl shadow p-5 mb-6">
+          <h3 className="text-lg font-bold text-[#1F3864] dark:text-blue-300 mb-4">📈 Evolución de kilometraje</h3>
           <div className="flex items-end gap-2 h-40 overflow-x-auto">
             {historicoKm.map((h, i) => {
               const altura = kmMax > kmMin
@@ -258,8 +258,8 @@ export default function VehiculoDetalle({ vehiculos, ordenes, onRefresh }) {
       )}
 
       {/* Timeline de OTs */}
-      <div className="bg-white rounded-xl shadow p-5">
-        <h3 className="text-lg font-bold text-[#1F3864] mb-4">📋 Historial de Órdenes de Trabajo</h3>
+      <div className="bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 rounded-xl shadow p-5">
+        <h3 className="text-lg font-bold text-[#1F3864] dark:text-blue-300 mb-4">📋 Historial de Órdenes de Trabajo</h3>
         {otsVehiculo.length === 0 ? (
           <div className="text-center py-8 text-slate-400">
             <p className="mb-2">Este vehículo no tiene OTs registradas todavía</p>

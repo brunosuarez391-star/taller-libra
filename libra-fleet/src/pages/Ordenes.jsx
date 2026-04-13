@@ -124,17 +124,17 @@ export default function Ordenes({ ordenes, onRefresh }) {
 
   return (
     <div>
-      <h2 className="text-2xl font-bold text-[#1F3864] mb-6">Ordenes de Trabajo</h2>
+      <h2 className="text-2xl font-bold text-[#1F3864] dark:text-blue-300 mb-6">Ordenes de Trabajo</h2>
 
       {/* Filtros por estado */}
       <div className="flex gap-2 mb-3 flex-wrap">
-        <button onClick={() => setFiltro('todos')} className={`px-4 py-2 rounded-lg text-sm font-bold transition-colors ${filtro === 'todos' ? 'bg-[#1F3864] text-white' : 'bg-slate-200 text-slate-600'}`}>
+        <button onClick={() => setFiltro('todos')} className={`px-4 py-2 rounded-lg text-sm font-bold transition-colors ${filtro === 'todos' ? 'bg-[#1F3864] text-white' : 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300'}`}>
           Todos ({ordenes.length})
         </button>
         {ESTADOS_OT.map(estado => {
           const count = ordenes.filter(o => o.estado === estado).length
           return (
-            <button key={estado} onClick={() => setFiltro(estado)} className={`px-4 py-2 rounded-lg text-sm font-bold transition-colors ${filtro === estado ? 'bg-[#2E75B6] text-white' : 'bg-slate-200 text-slate-600'}`}>
+            <button key={estado} onClick={() => setFiltro(estado)} className={`px-4 py-2 rounded-lg text-sm font-bold transition-colors ${filtro === estado ? 'bg-[#2E75B6] text-white' : 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300'}`}>
               {estado} ({count})
             </button>
           )
@@ -142,9 +142,9 @@ export default function Ordenes({ ordenes, onRefresh }) {
       </div>
 
       {/* Filtros por fecha */}
-      <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-3 mb-4">
+      <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 p-3 mb-4">
         <div className="flex items-center gap-2 flex-wrap">
-          <span className="text-xs font-bold text-slate-500 mr-1">📅 Período:</span>
+          <span className="text-xs font-bold text-slate-500 dark:text-slate-400 mr-1">📅 Período:</span>
           {[
             { key: 'todas', label: 'Todas' },
             { key: '7dias', label: 'Últimos 7 días' },
@@ -156,7 +156,7 @@ export default function Ordenes({ ordenes, onRefresh }) {
               key={key}
               onClick={() => setFiltroFecha(key)}
               className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ${
-                filtroFecha === key ? 'bg-[#2E75B6] text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                filtroFecha === key ? 'bg-[#2E75B6] text-white' : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600'
               }`}
             >
               {label}
@@ -168,22 +168,22 @@ export default function Ordenes({ ordenes, onRefresh }) {
                 type="date"
                 value={fechaDesde}
                 onChange={e => setFechaDesde(e.target.value)}
-                className="border border-slate-300 rounded-lg px-2 py-1 text-xs"
+                className="border border-slate-300 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100 rounded-lg px-2 py-1 text-xs"
                 placeholder="Desde"
               />
-              <span className="text-slate-400 text-xs">→</span>
+              <span className="text-slate-400 dark:text-slate-500 text-xs">→</span>
               <input
                 type="date"
                 value={fechaHasta}
                 onChange={e => setFechaHasta(e.target.value)}
-                className="border border-slate-300 rounded-lg px-2 py-1 text-xs"
+                className="border border-slate-300 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100 rounded-lg px-2 py-1 text-xs"
                 placeholder="Hasta"
               />
             </div>
           )}
           <div className="flex-1"></div>
-          <span className="text-xs text-slate-500 font-medium">
-            Mostrando <strong className="text-[#1F3864]">{filtradas.length}</strong> de {ordenes.length}
+          <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">
+            Mostrando <strong className="text-[#1F3864] dark:text-blue-300">{filtradas.length}</strong> de {ordenes.length}
           </span>
         </div>
       </div>
@@ -227,13 +227,13 @@ export default function Ordenes({ ordenes, onRefresh }) {
 
       {/* Lista de OTs */}
       {filtradas.length === 0 ? (
-        <div className="bg-white rounded-xl shadow p-8 text-center text-slate-400">
+        <div className="bg-white dark:bg-slate-800 rounded-xl shadow p-8 text-center text-slate-400 dark:text-slate-500">
           No hay OTs {filtro !== 'todos' ? `en estado "${filtro}"` : 'todavía'}
         </div>
       ) : (
         <div className="space-y-4">
           {filtradas.map((ot) => (
-            <div key={ot.id} className="bg-white rounded-xl shadow p-5 border-l-4 border-[#2E75B6]">
+            <div key={ot.id} className="bg-white dark:bg-slate-800 rounded-xl shadow p-5 border-l-4 border-[#2E75B6] text-slate-800 dark:text-slate-200">
               {/* Header OT */}
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3">
                 <div className="flex items-center gap-3 flex-wrap">

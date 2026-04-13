@@ -1,5 +1,7 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 :root {
   --libra-dark: #1F3864;
   --libra-mid: #2E75B6;
@@ -11,9 +13,20 @@ body {
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
   background: #f8fafc;
   color: #1e293b;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.dark body {
+  background: #0f172a;
+  color: #e2e8f0;
 }
 
 @media print {
+  /* Forzar tema claro al imprimir */
+  .dark body {
+    background: #ffffff !important;
+    color: #000000 !important;
+  }
   body * { visibility: hidden; }
   .print-area, .print-area * { visibility: visible; }
   .print-area { position: absolute; left: 0; top: 0; }

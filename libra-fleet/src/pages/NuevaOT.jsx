@@ -180,19 +180,19 @@ export default function NuevaOT({ vehiculos, clientes, onCrear }) {
 
   return (
     <div>
-      <h2 className="text-2xl font-bold text-[#1F3864] mb-6">Nueva Orden de Trabajo</h2>
+      <h2 className="text-2xl font-bold text-[#1F3864] dark:text-blue-300 mb-6">Nueva Orden de Trabajo</h2>
 
-      <form onSubmit={handleSubmit} className="bg-white rounded-xl shadow p-6 max-w-2xl">
+      <form onSubmit={handleSubmit} className="bg-white dark:bg-slate-800 rounded-xl shadow p-6 max-w-2xl text-slate-800 dark:text-slate-200">
         {/* Cliente */}
         <div className="mb-4">
-          <label className="block text-sm font-bold text-slate-700 mb-1">
+          <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">
             Cliente <span className="text-red-500">*</span>
           </label>
           <select
             value={form.cliente_id}
             onChange={e => setForm({ ...form, cliente_id: e.target.value, vehiculo_id: '' })}
             required
-            className="w-full border border-slate-300 rounded-lg px-4 py-2.5 focus:border-[#2E75B6] focus:outline-none"
+            className="w-full border border-slate-300 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100 rounded-lg px-4 py-2.5 focus:border-[#2E75B6] focus:outline-none"
           >
             <option value="">Seleccionar cliente...</option>
             {clientes.map(c => <option key={c.id} value={c.id}>{c.nombre}</option>)}
@@ -204,14 +204,14 @@ export default function NuevaOT({ vehiculos, clientes, onCrear }) {
 
         {/* Vehículo */}
         <div className="mb-4">
-          <label className="block text-sm font-bold text-slate-700 mb-1">
+          <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">
             Unidad <span className="text-red-500">*</span>
           </label>
           <select
             value={form.vehiculo_id}
             onChange={e => handleSelectVehiculo(e.target.value)}
             required
-            className="w-full border border-slate-300 rounded-lg px-4 py-2.5 focus:border-[#2E75B6] focus:outline-none"
+            className="w-full border border-slate-300 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100 rounded-lg px-4 py-2.5 focus:border-[#2E75B6] focus:outline-none"
           >
             <option value="">Seleccionar unidad...</option>
             {vehiculosCliente.map(v => (
@@ -234,7 +234,7 @@ export default function NuevaOT({ vehiculos, clientes, onCrear }) {
         {/* Patente + Chofer */}
         <div className="grid grid-cols-2 gap-4 mb-4">
           <div>
-            <label className="block text-sm font-bold text-slate-700 mb-1">Patente</label>
+            <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">Patente</label>
             <input
               type="text"
               value={form.patente}
@@ -244,20 +244,20 @@ export default function NuevaOT({ vehiculos, clientes, onCrear }) {
             />
           </div>
           <div>
-            <label className="block text-sm font-bold text-slate-700 mb-1">Chofer</label>
+            <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">Chofer</label>
             <input
               type="text"
               value={form.chofer}
               onChange={e => setForm({ ...form, chofer: e.target.value })}
               placeholder="Nombre del chofer"
-              className="w-full border border-slate-300 rounded-lg px-4 py-2.5 focus:border-[#2E75B6] focus:outline-none"
+              className="w-full border border-slate-300 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100 rounded-lg px-4 py-2.5 focus:border-[#2E75B6] focus:outline-none"
             />
           </div>
         </div>
 
         {/* KM con validaciones */}
         <div className="mb-4">
-          <label className="block text-sm font-bold text-slate-700 mb-1">
+          <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">
             Kilómetros actuales <span className="text-red-500">*</span>
           </label>
           <input
@@ -294,11 +294,11 @@ export default function NuevaOT({ vehiculos, clientes, onCrear }) {
 
         {/* Tipo de Service */}
         <div className="mb-4">
-          <label className="block text-sm font-bold text-slate-700 mb-1">Tipo de Service</label>
+          <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">Tipo de Service</label>
           <select
             value={form.servicio}
             onChange={e => setForm({ ...form, servicio: e.target.value })}
-            className="w-full border border-slate-300 rounded-lg px-4 py-2.5 focus:border-[#2E75B6] focus:outline-none"
+            className="w-full border border-slate-300 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100 rounded-lg px-4 py-2.5 focus:border-[#2E75B6] focus:outline-none"
           >
             {Object.entries(SERVICIOS).map(([key, s]) => (
               <option key={key} value={key}>{s.nombre} ({s.tiempo})</option>
@@ -313,24 +313,24 @@ export default function NuevaOT({ vehiculos, clientes, onCrear }) {
 
         {/* Mecánico */}
         <div className="mb-4">
-          <label className="block text-sm font-bold text-slate-700 mb-1">Mecánico</label>
+          <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">Mecánico</label>
           <input
             type="text"
             value={form.mecanico}
             onChange={e => setForm({ ...form, mecanico: e.target.value })}
-            className="w-full border border-slate-300 rounded-lg px-4 py-2.5 focus:border-[#2E75B6] focus:outline-none"
+            className="w-full border border-slate-300 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100 rounded-lg px-4 py-2.5 focus:border-[#2E75B6] focus:outline-none"
           />
         </div>
 
         {/* Observaciones */}
         <div className="mb-6">
-          <label className="block text-sm font-bold text-slate-700 mb-1">Observaciones</label>
+          <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">Observaciones</label>
           <textarea
             value={form.observaciones}
             onChange={e => setForm({ ...form, observaciones: e.target.value })}
             rows="3"
             placeholder="Notas adicionales..."
-            className="w-full border border-slate-300 rounded-lg px-4 py-2.5 focus:border-[#2E75B6] focus:outline-none"
+            className="w-full border border-slate-300 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100 rounded-lg px-4 py-2.5 focus:border-[#2E75B6] focus:outline-none"
           />
         </div>
 

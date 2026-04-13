@@ -76,8 +76,8 @@ export default function SistemaIA({ vehiculos, ordenes, clientes }) {
     <div>
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h2 className="text-2xl font-bold text-[#1F3864]">🤖 Sistema IA — Taller Libra</h2>
-          <p className="text-sm text-slate-500 mt-1">
+          <h2 className="text-2xl font-bold text-[#1F3864] dark:text-blue-300">🤖 Sistema IA — Taller Libra</h2>
+          <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
             {ahora.toLocaleString('es-AR', { dateStyle: 'full', timeStyle: 'short' })}
           </p>
         </div>
@@ -96,8 +96,8 @@ export default function SistemaIA({ vehiculos, ordenes, clientes }) {
       </div>
 
       {/* Próximas ejecuciones */}
-      <div className="bg-white rounded-xl shadow p-5 mb-6">
-        <h3 className="text-lg font-bold text-[#1F3864] mb-3">⏰ Próximas ejecuciones automáticas</h3>
+      <div className="bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 rounded-xl shadow p-5 mb-6">
+        <h3 className="text-lg font-bold text-[#1F3864] dark:text-blue-300 mb-3">⏰ Próximas ejecuciones automáticas</h3>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           {proximasEjecuciones.slice(0, 6).map((p, i) => (
             <div key={i} className="flex items-center gap-3 p-3 bg-slate-50 rounded-lg border border-slate-200">
@@ -112,7 +112,7 @@ export default function SistemaIA({ vehiculos, ordenes, clientes }) {
       </div>
 
       {/* Filtro por categoría */}
-      <div className="bg-white rounded-xl shadow p-5 mb-4">
+      <div className="bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 rounded-xl shadow p-5 mb-4">
         <div className="flex items-center justify-between mb-3">
           <h3 className="text-lg font-bold text-[#1F3864]">Agentes del sistema ({agentesFiltrados.length})</h3>
         </div>
@@ -169,8 +169,8 @@ export default function SistemaIA({ vehiculos, ordenes, clientes }) {
       </div>
 
       {/* Diagrama del circuito */}
-      <div className="bg-white rounded-xl shadow p-5 mb-6">
-        <h3 className="text-lg font-bold text-[#1F3864] mb-4">🔄 Circuito Integrado App ↔ Agentes</h3>
+      <div className="bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 rounded-xl shadow p-5 mb-6">
+        <h3 className="text-lg font-bold text-[#1F3864] dark:text-blue-300 mb-4">🔄 Circuito Integrado App ↔ Agentes</h3>
         <div className="bg-gradient-to-r from-[#1F3864] to-[#2E75B6] rounded-lg p-6 text-white">
           <div className="space-y-3">
             <FlowStep icon="1️⃣" text="Bruno marca una OT como Finalizado en Libra Fleet" />
