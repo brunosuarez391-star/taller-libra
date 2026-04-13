@@ -1,5 +1,6 @@
 import { Link, useLocation } from 'react-router-dom'
 import { EMPRESA } from '../lib/data'
+import { useAuth } from '../lib/AuthContext'
 import BusquedaGlobal from './BusquedaGlobal'
 import ThemeToggle from './ThemeToggle'
 
@@ -10,11 +11,19 @@ const NAV = [
   { path: '/nueva-ot', label: '+ Nueva OT', icon: '➕' },
   { path: '/presupuestos', label: 'Presupuestos', icon: '💰' },
   { path: '/facturacion', label: 'Facturación', icon: '🧾' },
+  { path: '/cobranzas', label: 'Cobranzas', icon: '💵' },
   { path: '/sistema-ia', label: 'Sistema IA', icon: '🤖' },
 ]
 
 export default function Layout({ children, vehiculos = [], ordenes = [], clientes = [] }) {
   const { pathname } = useLocation()
+  const { user, signOut } = useAuth()
+
+  const handleLogout = async () => {
+    if (confirm('¿Cerrar sesión?')) {
+      await signOut()
+    }
+  }
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-900 transition-colors">
@@ -28,8 +37,20 @@ export default function Layout({ children, vehiculos = [], ordenes = [], cliente
           <div className="flex-1 max-w-md">
             <BusquedaGlobal vehiculos={vehiculos} ordenes={ordenes} clientes={clientes} />
           </div>
-          <div className="flex items-center gap-3 shrink-0">
+          <div className="flex items-center gap-2 shrink-0">
             <ThemeToggle />
+            {user && (
+              <button
+                onClick={handleLogout}
+                className="w-9 h-9 flex items-center justify-center rounded-lg bg-white/10 hover:bg-red-500/80 border border-white/20 text-blue-100 hover:text-white transition-colors"
+                title={`Cerrar sesión (${user.email})`}
+                aria-label="Cerrar sesión"
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                </svg>
+              </button>
+            )}
             <div className="text-right text-xs text-blue-200 hidden lg:block">
               <p>{EMPRESA.direccion}</p>
               <p>Tel: {EMPRESA.tel}</p>
