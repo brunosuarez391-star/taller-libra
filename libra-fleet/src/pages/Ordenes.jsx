@@ -5,15 +5,58 @@ import EtiquetaService from '../components/EtiquetaService'
 
 export default function Ordenes({ ordenes, onRefresh }) {
   const [filtro, setFiltro] = useState('todos')
+  const [filtroFecha, setFiltroFecha] = useState('todas')
+  const [fechaDesde, setFechaDesde] = useState('')
+  const [fechaHasta, setFechaHasta] = useState('')
   const [otSeleccionada, setOtSeleccionada] = useState(null)
   const [editando, setEditando] = useState(null)
   const [editForm, setEditForm] = useState({})
   const [confirmEliminar, setConfirmEliminar] = useState(null)
   const [loading, setLoading] = useState(false)
 
-  const filtradas = filtro === 'todos'
-    ? ordenes
-    : ordenes.filter(o => o.estado === filtro)
+  // Calcular rango de fechas basado en el filtro
+  const rangoFecha = (() => {
+    const ahora = new Date()
+    const hoy = new Date(ahora.getFullYear(), ahora.getMonth(), ahora.getDate())
+    switch (filtroFecha) {
+      case '7dias': {
+        const desde = new Date(hoy)
+        desde.setDate(desde.getDate() - 7)
+        return { desde, hasta: new Date(ahora.getFullYear(), ahora.getMonth(), ahora.getDate(), 23, 59, 59) }
+      }
+      case '30dias': {
+        const desde = new Date(hoy)
+        desde.setDate(desde.getDate() - 30)
+        return { desde, hasta: new Date(ahora.getFullYear(), ahora.getMonth(), ahora.getDate(), 23, 59, 59) }
+      }
+      case 'mes': {
+        return {
+          desde: new Date(ahora.getFullYear(), ahora.getMonth(), 1),
+          hasta: new Date(ahora.getFullYear(), ahora.getMonth() + 1, 0, 23, 59, 59),
+        }
+      }
+      case 'personalizado': {
+        return {
+          desde: fechaDesde ? new Date(fechaDesde + 'T00:00:00') : null,
+          hasta: fechaHasta ? new Date(fechaHasta + 'T23:59:59') : null,
+        }
+      }
+      default:
+        return null
+    }
+  })()
+
+  const filtradas = ordenes.filter(o => {
+    // Filtro por estado
+    if (filtro !== 'todos' && o.estado !== filtro) return false
+    // Filtro por fecha
+    if (rangoFecha) {
+      const fechaOT = new Date(o.created_at)
+      if (rangoFecha.desde && fechaOT < rangoFecha.desde) return false
+      if (rangoFecha.hasta && fechaOT > rangoFecha.hasta) return false
+    }
+    return true
+  })
 
   const handleCambiarEstado = async (ot, nuevoEstado) => {
     setLoading(true)
@@ -83,8 +126,8 @@ export default function Ordenes({ ordenes, onRefresh }) {
     <div>
       <h2 className="text-2xl font-bold text-[#1F3864] mb-6">Ordenes de Trabajo</h2>
 
-      {/* Filtros */}
-      <div className="flex gap-2 mb-6 flex-wrap">
+      {/* Filtros por estado */}
+      <div className="flex gap-2 mb-3 flex-wrap">
         <button onClick={() => setFiltro('todos')} className={`px-4 py-2 rounded-lg text-sm font-bold transition-colors ${filtro === 'todos' ? 'bg-[#1F3864] text-white' : 'bg-slate-200 text-slate-600'}`}>
           Todos ({ordenes.length})
         </button>
@@ -96,6 +139,53 @@ export default function Ordenes({ ordenes, onRefresh }) {
             </button>
           )
         })}
+      </div>
+
+      {/* Filtros por fecha */}
+      <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-3 mb-4">
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="text-xs font-bold text-slate-500 mr-1">📅 Período:</span>
+          {[
+            { key: 'todas', label: 'Todas' },
+            { key: '7dias', label: 'Últimos 7 días' },
+            { key: '30dias', label: 'Últimos 30 días' },
+            { key: 'mes', label: 'Mes actual' },
+            { key: 'personalizado', label: 'Personalizado' },
+          ].map(({ key, label }) => (
+            <button
+              key={key}
+              onClick={() => setFiltroFecha(key)}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ${
+                filtroFecha === key ? 'bg-[#2E75B6] text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+          {filtroFecha === 'personalizado' && (
+            <div className="flex items-center gap-2 ml-2">
+              <input
+                type="date"
+                value={fechaDesde}
+                onChange={e => setFechaDesde(e.target.value)}
+                className="border border-slate-300 rounded-lg px-2 py-1 text-xs"
+                placeholder="Desde"
+              />
+              <span className="text-slate-400 text-xs">→</span>
+              <input
+                type="date"
+                value={fechaHasta}
+                onChange={e => setFechaHasta(e.target.value)}
+                className="border border-slate-300 rounded-lg px-2 py-1 text-xs"
+                placeholder="Hasta"
+              />
+            </div>
+          )}
+          <div className="flex-1"></div>
+          <span className="text-xs text-slate-500 font-medium">
+            Mostrando <strong className="text-[#1F3864]">{filtradas.length}</strong> de {ordenes.length}
+          </span>
+        </div>
       </div>
 
       {/* Modal etiqueta */}
