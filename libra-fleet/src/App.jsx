@@ -8,6 +8,7 @@ import NuevaOT from './pages/NuevaOT'
 import Presupuestos from './pages/Presupuestos'
 import Facturacion from './pages/Facturacion'
 import SistemaIA from './pages/SistemaIA'
+import VehiculoDetalle from './pages/VehiculoDetalle'
 import VehiculoPublico from './pages/VehiculoPublico'
 import { getOrdenes, getVehiculos, getClientes } from './lib/api'
 
@@ -48,10 +49,11 @@ export default function App() {
       <Routes>
         <Route path="/flota/:codigo" element={<VehiculoPublico />} />
         <Route path="*" element={
-          <Layout>
+          <Layout vehiculos={vehiculos} ordenes={ordenes} clientes={clientes}>
             <Routes>
               <Route path="/" element={<Dashboard ordenes={ordenes} vehiculos={vehiculos} />} />
               <Route path="/vehiculos" element={<Vehiculos vehiculos={vehiculos} onRefresh={cargarDatos} />} />
+              <Route path="/vehiculo/:codigo" element={<VehiculoDetalle vehiculos={vehiculos} ordenes={ordenes} onRefresh={cargarDatos} />} />
               <Route path="/ordenes" element={<Ordenes ordenes={ordenes} onRefresh={cargarDatos} />} />
               <Route path="/nueva-ot" element={<NuevaOT vehiculos={vehiculos} clientes={clientes} onCrear={cargarDatos} />} />
               <Route path="/presupuestos" element={<Presupuestos vehiculos={vehiculos} clientes={clientes} />} />
