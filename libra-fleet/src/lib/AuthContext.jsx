@@ -1,12 +1,18 @@
 import { createContext, useContext, useEffect, useState } from 'react'
 import { supabase } from './supabase'
 
+// Sesión guest: se activa cuando el usuario clickea "Entrar sin login"
+// Se guarda en localStorage con la clave GUEST_KEY
+const GUEST_KEY = 'libra-guest-mode'
+const GUEST_USER = { id: 'guest', email: 'guest@libra.local', guest: true }
+
 const AuthContext = createContext({
   user: null,
   loading: true,
   signIn: async () => {},
   signUp: async () => {},
   signOut: async () => {},
+  enterAsGuest: () => {},
 })
 
 export function AuthProvider({ children }) {
@@ -14,7 +20,14 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    // Chequear sesión actual al cargar
+    // 1. Chequear si hay sesión guest persistida
+    if (typeof window !== 'undefined' && localStorage.getItem(GUEST_KEY) === '1') {
+      setUser(GUEST_USER)
+      setLoading(false)
+      return
+    }
+
+    // 2. Chequear sesión de Supabase
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null)
       setLoading(false)
@@ -22,7 +35,10 @@ export function AuthProvider({ children }) {
 
     // Listener de cambios de auth
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null)
+      // Solo actualizar si no estamos en modo guest
+      if (localStorage.getItem(GUEST_KEY) !== '1') {
+        setUser(session?.user ?? null)
+      }
     })
 
     return () => subscription?.unsubscribe()
@@ -39,9 +55,6 @@ export function AuthProvider({ children }) {
       email,
       password,
       options: {
-        // En Supabase la confirmación por email está activada por default.
-        // Para una app de 1 solo usuario, hay que desactivarla en el proyecto
-        // o confirmar el email manualmente desde la UI de Supabase.
         emailRedirectTo: window.location.origin,
       },
     })
@@ -54,19 +67,25 @@ export function AuthProvider({ children }) {
         const signInResult = await supabase.auth.signInWithPassword({ email, password })
         if (signInResult.data?.session) return signInResult.data
       } catch {
-        // silenciar — el usuario igual se creó, solo necesita confirmar email
+        // silenciar — el usuario igual se creó
       }
     }
     return data
   }
 
   const signOut = async () => {
+    localStorage.removeItem(GUEST_KEY)
     await supabase.auth.signOut()
     setUser(null)
   }
 
+  const enterAsGuest = () => {
+    localStorage.setItem(GUEST_KEY, '1')
+    setUser(GUEST_USER)
+  }
+
   return (
-    <AuthContext.Provider value={{ user, loading, signIn, signUp, signOut }}>
+    <AuthContext.Provider value={{ user, loading, signIn, signUp, signOut, enterAsGuest }}>
       {children}
     </AuthContext.Provider>
   )
