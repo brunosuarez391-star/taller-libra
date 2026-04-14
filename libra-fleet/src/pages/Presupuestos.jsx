@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react'
 import { obtenerPrecio, SERVICIOS } from '../lib/data'
+import { crearPresupuestoCompleto, actualizarEstadoPresupuesto, eliminarPresupuesto } from '../lib/api'
 import PresupuestoView from '../components/PresupuestoView'
 
 // Tipos de presupuesto
@@ -16,7 +17,8 @@ const lineaVacia = () => ({
   precio: 0,
 })
 
-export default function Presupuestos({ vehiculos, clientes }) {
+export default function Presupuestos({ vehiculos, clientes, presupuestos = [], onRefresh }) {
+  const [vista, setVista] = useState('nuevo') // 'nuevo' | 'lista'
   const [tipo, setTipo] = useState('service')
   const [clienteId, setClienteId] = useState('')
   const [vehiculoId, setVehiculoId] = useState('')
@@ -82,6 +84,8 @@ export default function Presupuestos({ vehiculos, clientes }) {
       numero: num,
       cliente: cliente?.nombre,
       cliente_obj: cliente,
+      cliente_id: clienteId,
+      vehiculo_id: vehiculoId || null,
       vehiculo: vehiculo
         ? `${vehiculo.codigo} — ${vehiculo.marca} ${vehiculo.modelo} ${vehiculo.tipo || ''}`.trim()
         : null,
@@ -93,6 +97,8 @@ export default function Presupuestos({ vehiculos, clientes }) {
       total,
       observaciones,
       fecha: new Date().toLocaleDateString('es-AR'),
+      guardado: false,
+      guardado_id: null,
     })
   }
 
@@ -102,13 +108,60 @@ export default function Presupuestos({ vehiculos, clientes }) {
     setObservaciones('')
   }
 
+  const guardarPresupuesto = async () => {
+    if (!presupuesto) return
+    try {
+      const guardado = await crearPresupuestoCompleto({
+        numero: presupuesto.numero,
+        cliente_id: presupuesto.cliente_id,
+        vehiculo_id: presupuesto.vehiculo_id,
+        fecha: new Date().toISOString().slice(0, 10),
+        subtotal_siva: presupuesto.subtotal,
+        iva: presupuesto.iva,
+        total_civa: presupuesto.total,
+        estado: 'enviado',
+        validez_dias: 15,
+        condicion_pago: '30 días',
+        items: presupuesto.items.map(it => ({
+          descripcion: it.descripcion,
+          cantidad: it.cantidad,
+          precio_unit: it.precio,
+        })),
+      })
+      setPresupuesto({ ...presupuesto, guardado: true, guardado_id: guardado.id })
+      if (onRefresh) await onRefresh()
+      return guardado
+    } catch (err) {
+      alert('Error al guardar el presupuesto: ' + err.message)
+      throw err
+    }
+  }
+
   if (presupuesto) {
-    return <PresupuestoView presupuesto={presupuesto} onReset={reset} />
+    return <PresupuestoView presupuesto={presupuesto} onReset={reset} onGuardar={guardarPresupuesto} />
+  }
+
+  if (vista === 'lista') {
+    return (
+      <ListaPresupuestos
+        presupuestos={presupuestos}
+        onNuevo={() => setVista('nuevo')}
+        onRefresh={onRefresh}
+      />
+    )
   }
 
   return (
     <div>
-      <h2 className="text-2xl font-bold text-[#1F3864] dark:text-blue-300 mb-6">Nuevo Presupuesto</h2>
+      <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
+        <h2 className="text-2xl font-bold text-[#1F3864] dark:text-blue-300">Nuevo Presupuesto</h2>
+        <button
+          onClick={() => setVista('lista')}
+          className="bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 px-4 py-2 rounded-lg text-sm font-bold hover:bg-slate-200 dark:hover:bg-slate-600"
+        >
+          📋 Ver presupuestos guardados ({presupuestos.length})
+        </button>
+      </div>
 
       <div className="bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 rounded-xl shadow p-6 max-w-4xl">
         {/* Tipo de presupuesto */}
@@ -284,6 +337,217 @@ export default function Presupuestos({ vehiculos, clientes }) {
           ✓ Generar Presupuesto
         </button>
       </div>
+    </div>
+  )
+}
+
+// ============================================================
+// Listado de presupuestos guardados
+// ============================================================
+function ListaPresupuestos({ presupuestos, onNuevo, onRefresh }) {
+  const [filtroEstado, setFiltroEstado] = useState('todos')
+  const [filtroMes, setFiltroMes] = useState('todos')
+  const [loading, setLoading] = useState(null)
+
+  const formatARS = (n) => '$' + (n || 0).toLocaleString('es-AR')
+
+  // Calcular meses disponibles
+  const meses = useMemo(() => {
+    const set = new Set()
+    presupuestos.forEach(p => {
+      const f = new Date(p.created_at || p.fecha)
+      set.add(`${f.getFullYear()}-${String(f.getMonth() + 1).padStart(2, '0')}`)
+    })
+    return [...set].sort().reverse()
+  }, [presupuestos])
+
+  const filtrados = useMemo(() => {
+    return presupuestos.filter(p => {
+      if (filtroEstado !== 'todos' && p.estado !== filtroEstado) return false
+      if (filtroMes !== 'todos') {
+        const f = new Date(p.created_at || p.fecha)
+        const key = `${f.getFullYear()}-${String(f.getMonth() + 1).padStart(2, '0')}`
+        if (key !== filtroMes) return false
+      }
+      return true
+    })
+  }, [presupuestos, filtroEstado, filtroMes])
+
+  const totales = useMemo(() => {
+    return filtrados.reduce((acc, p) => {
+      acc.count++
+      acc.total += parseFloat(p.total_civa || 0)
+      if (p.estado === 'aprobado') acc.aprobados += parseFloat(p.total_civa || 0)
+      return acc
+    }, { count: 0, total: 0, aprobados: 0 })
+  }, [filtrados])
+
+  const cambiarEstado = async (id, nuevoEstado) => {
+    setLoading(id)
+    try {
+      await actualizarEstadoPresupuesto(id, nuevoEstado)
+      if (onRefresh) await onRefresh()
+    } catch (err) {
+      alert('Error: ' + err.message)
+    }
+    setLoading(null)
+  }
+
+  const borrar = async (id) => {
+    if (!confirm('¿Eliminar este presupuesto? Esta acción no se puede deshacer.')) return
+    setLoading(id)
+    try {
+      await eliminarPresupuesto(id)
+      if (onRefresh) await onRefresh()
+    } catch (err) {
+      alert('Error: ' + err.message)
+    }
+    setLoading(null)
+  }
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
+        <div>
+          <h2 className="text-2xl font-bold text-[#1F3864] dark:text-blue-300">Presupuestos guardados</h2>
+          <p className="text-slate-500 dark:text-slate-400 text-sm">
+            {presupuestos.length} presupuestos totales · {filtrados.length} con los filtros actuales
+          </p>
+        </div>
+        <button
+          onClick={onNuevo}
+          className="bg-[#1F3864] hover:bg-[#2E75B6] text-white px-4 py-2 rounded-lg text-sm font-bold"
+        >
+          ➕ Nuevo Presupuesto
+        </button>
+      </div>
+
+      {/* Filtros */}
+      <div className="bg-white dark:bg-slate-800 rounded-xl shadow p-4 mb-4">
+        <div className="flex items-center gap-3 flex-wrap">
+          <span className="text-xs font-bold text-slate-500 dark:text-slate-400">Estado:</span>
+          {[
+            { key: 'todos', label: 'Todos' },
+            { key: 'borrador', label: 'Borrador' },
+            { key: 'enviado', label: 'Enviado' },
+            { key: 'aprobado', label: 'Aprobado' },
+            { key: 'rechazado', label: 'Rechazado' },
+          ].map(({ key, label }) => (
+            <button
+              key={key}
+              onClick={() => setFiltroEstado(key)}
+              className={`px-3 py-1 rounded-lg text-xs font-bold ${
+                filtroEstado === key
+                  ? 'bg-[#2E75B6] text-white'
+                  : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300'
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+          <div className="flex-1" />
+          <span className="text-xs font-bold text-slate-500 dark:text-slate-400">Mes:</span>
+          <select
+            value={filtroMes}
+            onChange={e => setFiltroMes(e.target.value)}
+            className="border border-slate-300 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100 rounded-lg px-3 py-1 text-xs"
+          >
+            <option value="todos">Todos</option>
+            {meses.map(m => (
+              <option key={m} value={m}>
+                {new Date(m + '-15').toLocaleString('es-AR', { month: 'long', year: 'numeric' })}
+              </option>
+            ))}
+          </select>
+        </div>
+      </div>
+
+      {/* KPIs */}
+      <div className="grid grid-cols-3 gap-4 mb-4">
+        <div className="bg-[#1F3864] text-white rounded-xl p-4">
+          <p className="text-2xl font-bold">{totales.count}</p>
+          <p className="text-xs opacity-80">Presupuestos</p>
+        </div>
+        <div className="bg-[#2E75B6] text-white rounded-xl p-4">
+          <p className="text-xl font-bold">{formatARS(totales.total)}</p>
+          <p className="text-xs opacity-80">Valor total</p>
+        </div>
+        <div className="bg-green-600 text-white rounded-xl p-4">
+          <p className="text-xl font-bold">{formatARS(totales.aprobados)}</p>
+          <p className="text-xs opacity-80">Aprobados</p>
+        </div>
+      </div>
+
+      {/* Lista */}
+      {filtrados.length === 0 ? (
+        <div className="bg-white dark:bg-slate-800 rounded-xl shadow p-8 text-center text-slate-400 dark:text-slate-500">
+          {presupuestos.length === 0
+            ? 'No hay presupuestos guardados. Creá uno desde "+ Nuevo Presupuesto".'
+            : 'No hay presupuestos con los filtros actuales.'}
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {filtrados.map(p => {
+            const fecha = new Date(p.created_at || p.fecha).toLocaleDateString('es-AR')
+            const color = {
+              borrador: 'bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-slate-200',
+              enviado: 'bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-300',
+              aprobado: 'bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300',
+              rechazado: 'bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-300',
+            }[p.estado] || 'bg-slate-100 text-slate-700'
+
+            return (
+              <div key={p.id} className="bg-white dark:bg-slate-800 rounded-xl shadow p-4 border-l-4 border-[#2E75B6]">
+                <div className="flex items-start justify-between gap-3 flex-wrap">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap mb-1">
+                      <span className="font-mono font-bold text-[#1F3864] dark:text-blue-300 text-lg">{p.numero}</span>
+                      <span className={`px-2 py-0.5 rounded-full text-xs font-bold uppercase ${color}`}>
+                        {p.estado}
+                      </span>
+                      <span className="text-xs text-slate-400 dark:text-slate-500">{fecha}</span>
+                    </div>
+                    <p className="text-sm text-slate-700 dark:text-slate-200 font-semibold">
+                      {p.clientes?.nombre || 'Sin cliente'}
+                    </p>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">
+                      {p.items_presupuesto?.length || 0} items · Total c/IVA: <strong>{formatARS(p.total_civa)}</strong>
+                    </p>
+                  </div>
+                  <div className="flex gap-1 flex-wrap items-center">
+                    {p.estado !== 'aprobado' && (
+                      <button
+                        onClick={() => cambiarEstado(p.id, 'aprobado')}
+                        disabled={loading === p.id}
+                        className="bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 px-3 py-1 rounded-lg text-xs font-bold hover:bg-green-200 dark:hover:bg-green-900/50 disabled:opacity-50"
+                      >
+                        ✓ Aprobar
+                      </button>
+                    )}
+                    {p.estado !== 'rechazado' && (
+                      <button
+                        onClick={() => cambiarEstado(p.id, 'rechazado')}
+                        disabled={loading === p.id}
+                        className="bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 px-3 py-1 rounded-lg text-xs font-bold hover:bg-red-200 dark:hover:bg-red-900/50 disabled:opacity-50"
+                      >
+                        ✕ Rechazar
+                      </button>
+                    )}
+                    <button
+                      onClick={() => borrar(p.id)}
+                      disabled={loading === p.id}
+                      className="bg-slate-100 dark:bg-slate-700 text-slate-500 px-3 py-1 rounded-lg text-xs font-bold hover:bg-red-100 dark:hover:bg-red-900/30 disabled:opacity-50"
+                      title="Eliminar"
+                    >
+                      🗑️
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      )}
     </div>
   )
 }

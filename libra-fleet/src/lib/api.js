@@ -162,7 +162,10 @@ export async function crearServiciosOT(otId, items) {
 
 // ============ PRESUPUESTOS ============
 export async function getPresupuestos() {
-  const { data, error } = await supabase.from('presupuestos').select('*, clientes(nombre)').order('created_at', { ascending: false })
+  const { data, error } = await supabase
+    .from('presupuestos')
+    .select('*, clientes(nombre, telefono), items_presupuesto(*)')
+    .order('created_at', { ascending: false })
   if (error) throw error
   return data
 }
@@ -171,4 +174,55 @@ export async function crearPresupuesto(presupuesto) {
   const { data, error } = await supabase.from('presupuestos').insert(presupuesto).select().single()
   if (error) throw error
   return data
+}
+
+/**
+ * Crea un presupuesto completo con sus items en una sola llamada.
+ * payload = {
+ *   numero, cliente_id, vehiculo_id?, fecha, subtotal_siva, iva, total_civa,
+ *   estado, observaciones?, items: [{ descripcion, cantidad, precio_unit, total }]
+ * }
+ */
+export async function crearPresupuestoCompleto(payload) {
+  const { items = [], ...cabecera } = payload
+  const { data: presupuesto, error: e1 } = await supabase
+    .from('presupuestos')
+    .insert(cabecera)
+    .select()
+    .single()
+  if (e1) throw e1
+
+  if (items.length > 0) {
+    const filas = items.map(it => ({
+      presupuesto_id: presupuesto.id,
+      vehiculo_id: payload.vehiculo_id || null,
+      descripcion: it.descripcion,
+      mano_obra: 0,
+      insumos: 0,
+      total: (it.cantidad || 1) * (it.precio_unit || it.precio || 0),
+    }))
+    const { error: e2 } = await supabase.from('items_presupuesto').insert(filas)
+    if (e2) {
+      // Rollback — eliminar la cabecera si los items fallaron
+      await supabase.from('presupuestos').delete().eq('id', presupuesto.id)
+      throw e2
+    }
+  }
+
+  return presupuesto
+}
+
+export async function actualizarEstadoPresupuesto(id, estado) {
+  const { error } = await supabase
+    .from('presupuestos')
+    .update({ estado })
+    .eq('id', id)
+  if (error) throw error
+}
+
+export async function eliminarPresupuesto(id) {
+  const { error: e1 } = await supabase.from('items_presupuesto').delete().eq('presupuesto_id', id)
+  if (e1) throw e1
+  const { error: e2 } = await supabase.from('presupuestos').delete().eq('id', id)
+  if (e2) throw e2
 }

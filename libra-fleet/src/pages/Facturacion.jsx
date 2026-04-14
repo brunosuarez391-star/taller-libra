@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react'
 import { jsPDF } from 'jspdf'
 import { obtenerPrecio, EMPRESA } from '../lib/data'
 
-export default function Facturacion({ ordenes, vehiculos, clientes }) {
+export default function Facturacion({ ordenes, vehiculos, clientes, presupuestos = [] }) {
   const [mesSeleccionado, setMesSeleccionado] = useState(() => {
     const now = new Date()
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
@@ -22,13 +22,28 @@ export default function Facturacion({ ordenes, vehiculos, clientes }) {
   // Filtrar por cliente
   const otsFiltradas = clienteId === 'todos' ? otsMes : otsMes.filter(ot => ot.cliente_id === clienteId)
 
-  // Agrupar por cliente
+  // Presupuestos APROBADOS del mes (facturables)
+  const presupuestosMes = useMemo(() => {
+    return presupuestos.filter(p => {
+      if (p.estado !== 'aprobado') return false
+      const fecha = new Date(p.created_at || p.fecha)
+      const mes = `${fecha.getFullYear()}-${String(fecha.getMonth() + 1).padStart(2, '0')}`
+      return mes === mesSeleccionado
+    })
+  }, [presupuestos, mesSeleccionado])
+
+  const presupuestosFiltrados = clienteId === 'todos'
+    ? presupuestosMes
+    : presupuestosMes.filter(p => p.cliente_id === clienteId)
+
+  // Agrupar por cliente (OTs + presupuestos aprobados)
   const resumenPorCliente = useMemo(() => {
     const grupos = {}
+
     otsFiltradas.forEach(ot => {
       const clienteNombre = ot.clientes?.nombre || 'Sin cliente'
       if (!grupos[clienteNombre]) {
-        grupos[clienteNombre] = { cliente: clienteNombre, ots: [], totalMO: 0, totalInsumos: 0, totalNeto: 0 }
+        grupos[clienteNombre] = { cliente: clienteNombre, ots: [], presupuestos: [], totalMO: 0, totalInsumos: 0, totalNeto: 0 }
       }
       const precio = obtenerPrecio(ot.vehiculos)
       grupos[clienteNombre].ots.push({
@@ -41,8 +56,19 @@ export default function Facturacion({ ordenes, vehiculos, clientes }) {
       grupos[clienteNombre].totalInsumos += precio.insumos
       grupos[clienteNombre].totalNeto += precio.total
     })
+
+    // Sumar presupuestos aprobados
+    presupuestosFiltrados.forEach(p => {
+      const clienteNombre = p.clientes?.nombre || 'Sin cliente'
+      if (!grupos[clienteNombre]) {
+        grupos[clienteNombre] = { cliente: clienteNombre, ots: [], presupuestos: [], totalMO: 0, totalInsumos: 0, totalNeto: 0 }
+      }
+      grupos[clienteNombre].presupuestos.push(p)
+      grupos[clienteNombre].totalNeto += parseFloat(p.subtotal_siva || 0)
+    })
+
     return Object.values(grupos)
-  }, [otsFiltradas])
+  }, [otsFiltradas, presupuestosFiltrados])
 
   const totalGeneral = resumenPorCliente.reduce((s, g) => s + g.totalNeto, 0)
   const ivaTotal = Math.round(totalGeneral * 0.21)
@@ -294,9 +320,9 @@ export default function Facturacion({ ordenes, vehiculos, clientes }) {
         </div>
       </div>
 
-      {otsFiltradas.length === 0 ? (
-        <div className="bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 rounded-xl shadow p-8 text-center text-slate-400">
-          No hay OTs en {mesNombre}
+      {otsFiltradas.length === 0 && presupuestosFiltrados.length === 0 ? (
+        <div className="bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 rounded-xl shadow p-8 text-center text-slate-400 dark:text-slate-500">
+          No hay OTs ni presupuestos aprobados en {mesNombre}
         </div>
       ) : (
         <>
@@ -306,7 +332,9 @@ export default function Facturacion({ ordenes, vehiculos, clientes }) {
               <div className="bg-[#1F3864] text-white px-5 py-3 flex justify-between items-center cursor-pointer" onClick={() => setVerDetalle(verDetalle === grupo.cliente ? null : grupo.cliente)}>
                 <div>
                   <h3 className="font-bold text-lg">{grupo.cliente}</h3>
-                  <p className="text-blue-200 text-sm">{grupo.ots.length} OTs — {mesNombre}</p>
+                  <p className="text-blue-200 text-sm">
+                    {grupo.ots.length} OTs{grupo.presupuestos.length > 0 ? ` + ${grupo.presupuestos.length} presupuesto${grupo.presupuestos.length !== 1 ? 's' : ''}` : ''} — {mesNombre}
+                  </p>
                 </div>
                 <div className="text-right">
                   <p className="font-bold text-lg">{formatARS(grupo.totalNeto)}</p>
@@ -315,7 +343,44 @@ export default function Facturacion({ ordenes, vehiculos, clientes }) {
               </div>
 
               {verDetalle === grupo.cliente && (
-                <div className="p-4">
+                <div className="p-4 space-y-4">
+                  {/* Presupuestos aprobados */}
+                  {grupo.presupuestos.length > 0 && (
+                    <div>
+                      <h4 className="text-sm font-bold text-[#1F3864] dark:text-blue-300 mb-2">
+                        📋 Presupuestos aprobados ({grupo.presupuestos.length})
+                      </h4>
+                      <table className="w-full text-sm mb-2">
+                        <thead>
+                          <tr className="bg-green-50 dark:bg-green-900/20 text-green-800 dark:text-green-300">
+                            <th className="px-3 py-2 text-left">Presupuesto</th>
+                            <th className="px-3 py-2 text-left">Fecha</th>
+                            <th className="px-3 py-2 text-left">Items</th>
+                            <th className="px-3 py-2 text-right">Subtotal s/IVA</th>
+                            <th className="px-3 py-2 text-right">Total c/IVA</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {grupo.presupuestos.map(p => (
+                            <tr key={p.id} className="border-b border-slate-100 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/50">
+                              <td className="px-3 py-2 font-mono font-bold">{p.numero}</td>
+                              <td className="px-3 py-2">{new Date(p.created_at || p.fecha).toLocaleDateString('es-AR')}</td>
+                              <td className="px-3 py-2 text-xs">{p.items_presupuesto?.length || 0} items</td>
+                              <td className="px-3 py-2 text-right font-mono">{formatARS(p.subtotal_siva)}</td>
+                              <td className="px-3 py-2 text-right font-mono font-bold">{formatARS(p.total_civa)}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+
+                  {/* Órdenes de trabajo */}
+                  {grupo.ots.length > 0 && (
+                    <div>
+                      <h4 className="text-sm font-bold text-[#1F3864] dark:text-blue-300 mb-2">
+                        🔧 Órdenes de trabajo ({grupo.ots.length})
+                      </h4>
                   <table className="w-full text-sm">
                     <thead>
                       <tr className="bg-[#D6E4F0] text-[#1F3864]">
@@ -344,14 +409,29 @@ export default function Facturacion({ ordenes, vehiculos, clientes }) {
                       ))}
                     </tbody>
                     <tfoot>
-                      <tr className="bg-slate-50 font-bold">
-                        <td colSpan="5" className="px-3 py-2 text-right">Subtotal {grupo.cliente}:</td>
+                      <tr className="bg-slate-50 dark:bg-slate-900 font-bold">
+                        <td colSpan="5" className="px-3 py-2 text-right">Subtotal OTs:</td>
                         <td className="px-3 py-2 text-right font-mono">{formatARS(grupo.totalMO)}</td>
                         <td className="px-3 py-2 text-right font-mono">{formatARS(grupo.totalInsumos)}</td>
-                        <td className="px-3 py-2 text-right font-mono text-[#1F3864]">{formatARS(grupo.totalNeto)}</td>
+                        <td className="px-3 py-2 text-right font-mono text-[#1F3864] dark:text-blue-300">
+                          {formatARS(grupo.totalMO + grupo.totalInsumos)}
+                        </td>
                       </tr>
                     </tfoot>
                   </table>
+                    </div>
+                  )}
+
+                  {/* Subtotal global del cliente */}
+                  <div className="bg-[#D6E4F0] dark:bg-slate-900 rounded-lg p-3 text-right">
+                    <p className="text-xs text-slate-500 dark:text-slate-400">Subtotal {grupo.cliente}</p>
+                    <p className="text-xl font-bold font-mono text-[#1F3864] dark:text-blue-300">
+                      {formatARS(grupo.totalNeto)}
+                    </p>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">
+                      + IVA 21%: {formatARS(Math.round(grupo.totalNeto * 0.21))}
+                    </p>
+                  </div>
                 </div>
               )}
             </div>

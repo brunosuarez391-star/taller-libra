@@ -1,8 +1,27 @@
+import { useState } from 'react'
 import { jsPDF } from 'jspdf'
 import { EMPRESA } from '../lib/data'
 
-export default function PresupuestoView({ presupuesto, onReset }) {
+export default function PresupuestoView({ presupuesto, onReset, onGuardar }) {
+  const [guardando, setGuardando] = useState(false)
+  const [guardadoExito, setGuardadoExito] = useState(false)
+
   const formatARS = (n) => '$' + (n || 0).toLocaleString('es-AR')
+
+  const handleGuardar = async () => {
+    if (!onGuardar || guardando || presupuesto.guardado) return
+    setGuardando(true)
+    try {
+      await onGuardar()
+      setGuardadoExito(true)
+    } catch {
+      // error ya mostrado por el parent
+    } finally {
+      setGuardando(false)
+    }
+  }
+
+  const yaGuardado = presupuesto.guardado || guardadoExito
 
   const exportarPDF = () => {
     const doc = new jsPDF({ unit: 'mm', format: 'a4' })
@@ -148,7 +167,24 @@ export default function PresupuestoView({ presupuesto, onReset }) {
     <div>
       <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
         <h2 className="text-2xl font-bold text-[#1F3864] dark:text-blue-300">Presupuesto {presupuesto.numero}</h2>
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
+          {onGuardar && (
+            <button
+              onClick={handleGuardar}
+              disabled={guardando || yaGuardado}
+              className={`px-4 py-2 rounded-lg font-bold text-sm transition-colors ${
+                yaGuardado
+                  ? 'bg-green-600 text-white cursor-default'
+                  : 'bg-green-600 hover:bg-green-700 text-white'
+              } disabled:opacity-70`}
+            >
+              {guardando
+                ? '⏳ Guardando...'
+                : yaGuardado
+                ? '✓ Guardado en el sistema'
+                : '💾 Guardar en el sistema'}
+            </button>
+          )}
           <button onClick={exportarPDF} className="bg-[#1F3864] hover:bg-[#2E75B6] text-white px-4 py-2 rounded-lg font-bold text-sm">
             📄 Descargar PDF
           </button>
@@ -160,6 +196,14 @@ export default function PresupuestoView({ presupuesto, onReset }) {
           </button>
         </div>
       </div>
+
+      {yaGuardado && (
+        <div className="mb-4 bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-800 text-green-700 dark:text-green-300 px-4 py-3 rounded-lg text-sm">
+          ✓ Presupuesto guardado correctamente. Ya aparece en el listado y se
+          contabilizará a fin de mes en Facturación cuando lo marques como
+          <strong> aprobado</strong>.
+        </div>
+      )}
 
       {/* Header del presupuesto */}
       <div className="bg-[#1F3864] text-white rounded-t-xl p-5">
