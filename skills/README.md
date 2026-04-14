@@ -20,10 +20,14 @@ Para evitar duplicación, podés:
 
 ## Skills disponibles
 
-| Skill | Carpeta | Para qué agente |
-|---|---|---|
-| **FAQ Taller Libra** | `faq-taller-libra/` | Agente 4 WhatsApp, Agente 6 Gestión |
-| (más por venir) | | |
+| Skill | Carpeta | Para qué agente | Estado |
+|---|---|---|---|
+| **FAQ Taller Libra** | `faq-taller-libra/` | Agente 4 WhatsApp, Agente 6 Gestión | ✅ Listo |
+| **Vencimientos AFIP 2026** | `vencimientos-afip-2026/` | Agente 9 CPN Contable | ✅ Listo |
+| **Catálogo Jones SRL** | `catalogo-jones-srl/` | Agente F2 Presupuestos Flota, Agentes F1 + 3 | ✅ Listo |
+| **Brand Libra** | `brand-libra/` | Agentes 1, 8, 10 (marketing) | ✅ Listo |
+| **Mapa de Agentes** | `mapa-agentes-libra/` | Bus de Eventos Coordinador | ✅ Listo |
+| (próximos) | | | |
 
 ## Convenciones
 
