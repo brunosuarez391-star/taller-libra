@@ -25,6 +25,39 @@ export async function actualizarKm(vehiculoId, km) {
   if (error) throw error
 }
 
+export async function crearVehiculo(vehiculo) {
+  const { data, error } = await supabase
+    .from('vehiculos')
+    .insert(vehiculo)
+    .select()
+    .single()
+  if (error) throw error
+  return data
+}
+
+export async function actualizarVehiculo(vehiculoId, campos) {
+  const { error } = await supabase
+    .from('vehiculos')
+    .update(campos)
+    .eq('id', vehiculoId)
+  if (error) throw error
+}
+
+export async function eliminarVehiculo(vehiculoId) {
+  const { error } = await supabase.from('vehiculos').delete().eq('id', vehiculoId)
+  if (error) throw error
+}
+
+export async function crearCliente(cliente) {
+  const { data, error } = await supabase
+    .from('clientes')
+    .insert(cliente)
+    .select()
+    .single()
+  if (error) throw error
+  return data
+}
+
 // ============ ORDENES DE TRABAJO ============
 export async function getOrdenes() {
   const { data, error } = await supabase.from('ordenes_trabajo').select('*, vehiculos(codigo, modelo, tipo), clientes(nombre)').order('created_at', { ascending: false })

@@ -5,6 +5,7 @@ const AuthContext = createContext({
   user: null,
   loading: true,
   signIn: async () => {},
+  signUp: async () => {},
   signOut: async () => {},
 })
 
@@ -33,13 +34,39 @@ export function AuthProvider({ children }) {
     return data
   }
 
+  const signUp = async (email, password) => {
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        // En Supabase la confirmación por email está activada por default.
+        // Para una app de 1 solo usuario, hay que desactivarla en el proyecto
+        // o confirmar el email manualmente desde la UI de Supabase.
+        emailRedirectTo: window.location.origin,
+      },
+    })
+    if (error) throw error
+
+    // Si el usuario fue creado pero no está confirmado, intentar login directo
+    // (funciona si "Enable email confirmations" está OFF en Supabase)
+    if (data.user && !data.session) {
+      try {
+        const signInResult = await supabase.auth.signInWithPassword({ email, password })
+        if (signInResult.data?.session) return signInResult.data
+      } catch {
+        // silenciar — el usuario igual se creó, solo necesita confirmar email
+      }
+    }
+    return data
+  }
+
   const signOut = async () => {
     await supabase.auth.signOut()
     setUser(null)
   }
 
   return (
-    <AuthContext.Provider value={{ user, loading, signIn, signOut }}>
+    <AuthContext.Provider value={{ user, loading, signIn, signUp, signOut }}>
       {children}
     </AuthContext.Provider>
   )

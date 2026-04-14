@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react'
 import { Link } from 'react-router-dom'
-import { PRECIOS } from '../lib/data'
+import { obtenerPrecio } from '../lib/data'
 
 /**
  * Página de Cobranzas: detecta OTs finalizadas hace más de N días
@@ -21,8 +21,7 @@ export default function Cobranzas({ ordenes, clientes }) {
       .map(ot => {
         const fecha = new Date(ot.updated_at || ot.created_at)
         const diasDesde = Math.floor((ahora - fecha) / msDia)
-        const modelo = ot.vehiculos?.modelo || '1634'
-        const precio = PRECIOS[`M.B. ${modelo}`] || PRECIOS['M.B. 1634']
+        const precio = obtenerPrecio(ot.vehiculos)
         const totalNeto = precio.total
         const iva = Math.round(totalNeto * 0.21)
         const totalCobrar = totalNeto + iva

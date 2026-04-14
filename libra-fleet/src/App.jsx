@@ -5,6 +5,7 @@ import Dashboard from './pages/Dashboard'
 import Vehiculos from './pages/Vehiculos'
 import Ordenes from './pages/Ordenes'
 import NuevaOT from './pages/NuevaOT'
+import NuevoVehiculo from './pages/NuevoVehiculo'
 import Login from './pages/Login'
 import { ThemeProvider } from './lib/ThemeContext'
 import { AuthProvider, useAuth } from './lib/AuthContext'
@@ -105,7 +106,8 @@ function ProtectedApp() {
             <Suspense fallback={<PageLoader />}>
               <Routes>
                 <Route path="/" element={<Dashboard ordenes={ordenes} vehiculos={vehiculos} />} />
-                <Route path="/vehiculos" element={<Vehiculos vehiculos={vehiculos} onRefresh={cargarDatos} />} />
+                <Route path="/vehiculos" element={<Vehiculos vehiculos={vehiculos} clientes={clientes} onRefresh={cargarDatos} />} />
+                <Route path="/nuevo-vehiculo" element={<NuevoVehiculo vehiculos={vehiculos} clientes={clientes} onCrear={cargarDatos} />} />
                 <Route path="/vehiculo/:codigo" element={<VehiculoDetalle vehiculos={vehiculos} ordenes={ordenes} onRefresh={cargarDatos} />} />
                 <Route path="/ordenes" element={<Ordenes ordenes={ordenes} onRefresh={cargarDatos} />} />
                 <Route path="/nueva-ot" element={<NuevaOT vehiculos={vehiculos} clientes={clientes} onCrear={cargarDatos} />} />

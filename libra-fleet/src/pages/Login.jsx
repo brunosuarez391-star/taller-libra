@@ -3,20 +3,37 @@ import { useAuth } from '../lib/AuthContext'
 import { EMPRESA } from '../lib/data'
 
 export default function Login() {
-  const { signIn } = useAuth()
+  const { signIn, signUp } = useAuth()
+  const [modo, setModo] = useState('login') // 'login' | 'signup'
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [mensaje, setMensaje] = useState('')
 
   const handleSubmit = async (e) => {
     e.preventDefault()
     setError('')
+    setMensaje('')
     setLoading(true)
     try {
-      await signIn(email, password)
+      if (modo === 'signup') {
+        if (password.length < 6) {
+          throw new Error('La contraseña debe tener al menos 6 caracteres')
+        }
+        const result = await signUp(email, password)
+        if (result?.session) {
+          // Login automático si la confirmación de email está desactivada
+          return
+        }
+        // Caso: confirmación de email activada en Supabase
+        setMensaje('✓ Cuenta creada. Revisá tu email para confirmar la cuenta, o desactivá la confirmación por email en Supabase → Authentication → Providers → Email.')
+        setModo('login')
+      } else {
+        await signIn(email, password)
+      }
     } catch (err) {
-      setError(err?.message || 'Error al ingresar')
+      setError(err?.message || 'Error')
     } finally {
       setLoading(false)
     }
@@ -36,7 +53,9 @@ export default function Login() {
 
         {/* Form */}
         <form onSubmit={handleSubmit} className="bg-white dark:bg-slate-800 rounded-2xl shadow-xl p-8 border border-slate-200 dark:border-slate-700">
-          <h2 className="text-xl font-bold text-slate-800 dark:text-slate-100 mb-5">Ingresá a tu cuenta</h2>
+          <h2 className="text-xl font-bold text-slate-800 dark:text-slate-100 mb-5">
+            {modo === 'login' ? 'Ingresá a tu cuenta' : 'Crear cuenta nueva'}
+          </h2>
 
           <div className="mb-4">
             <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">
@@ -63,10 +82,14 @@ export default function Login() {
               value={password}
               onChange={e => setPassword(e.target.value)}
               required
-              autoComplete="current-password"
+              minLength={6}
+              autoComplete={modo === 'login' ? 'current-password' : 'new-password'}
               placeholder="••••••••"
               className="w-full border border-slate-300 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100 rounded-lg px-4 py-2.5 focus:border-[#2E75B6] focus:outline-none focus:ring-2 focus:ring-blue-200 dark:focus:ring-blue-900"
             />
+            {modo === 'signup' && (
+              <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">Mínimo 6 caracteres</p>
+            )}
           </div>
 
           {error && (
@@ -75,16 +98,39 @@ export default function Login() {
             </div>
           )}
 
+          {mensaje && (
+            <div className="mb-4 bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-800 text-green-700 dark:text-green-300 px-3 py-2 rounded-lg text-sm">
+              {mensaje}
+            </div>
+          )}
+
           <button
             type="submit"
             disabled={loading || !email || !password}
             className="w-full bg-[#1F3864] hover:bg-[#2E75B6] text-white py-3 rounded-lg font-bold text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {loading ? 'Ingresando...' : 'Ingresar'}
+            {loading
+              ? (modo === 'login' ? 'Ingresando...' : 'Creando cuenta...')
+              : (modo === 'login' ? 'Ingresar' : 'Crear cuenta')}
           </button>
 
+          {/* Toggle login / signup */}
+          <div className="text-center mt-4">
+            <button
+              type="button"
+              onClick={() => {
+                setModo(modo === 'login' ? 'signup' : 'login')
+                setError('')
+                setMensaje('')
+              }}
+              className="text-xs text-[#2E75B6] dark:text-blue-400 hover:underline font-bold"
+            >
+              {modo === 'login' ? '¿Primera vez? Crear cuenta nueva' : '← Ya tengo cuenta, ingresar'}
+            </button>
+          </div>
+
           <p className="text-xs text-slate-400 dark:text-slate-500 text-center mt-4">
-            Sistema interno — acceso solo con credenciales autorizadas
+            Sistema interno — Taller Libra
           </p>
         </form>
 

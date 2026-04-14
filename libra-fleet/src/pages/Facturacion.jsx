@@ -1,7 +1,6 @@
 import { useState, useMemo } from 'react'
 import { jsPDF } from 'jspdf'
-import { PRECIOS } from '../lib/data'
-import { EMPRESA } from '../lib/data'
+import { obtenerPrecio, EMPRESA } from '../lib/data'
 
 export default function Facturacion({ ordenes, vehiculos, clientes }) {
   const [mesSeleccionado, setMesSeleccionado] = useState(() => {
@@ -31,8 +30,7 @@ export default function Facturacion({ ordenes, vehiculos, clientes }) {
       if (!grupos[clienteNombre]) {
         grupos[clienteNombre] = { cliente: clienteNombre, ots: [], totalMO: 0, totalInsumos: 0, totalNeto: 0 }
       }
-      const modelo = ot.vehiculos?.modelo || '1634'
-      const precio = PRECIOS[`M.B. ${modelo}`] || PRECIOS['M.B. 1634']
+      const precio = obtenerPrecio(ot.vehiculos)
       grupos[clienteNombre].ots.push({
         ...ot,
         mo: precio.mo,
