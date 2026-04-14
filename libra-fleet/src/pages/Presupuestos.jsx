@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { PRECIOS, SERVICIOS } from '../lib/data'
+import { obtenerPrecio, SERVICIOS } from '../lib/data'
 
 export default function Presupuestos({ vehiculos, clientes }) {
   const [clienteId, setClienteId] = useState('')
@@ -12,10 +12,10 @@ export default function Presupuestos({ vehiculos, clientes }) {
 
   const generarPresupuesto = () => {
     const items = vehiculosCliente.map(v => {
-      const precio = PRECIOS[`M.B. ${v.modelo}`] || PRECIOS['M.B. 1634']
+      const precio = obtenerPrecio(v)
       return {
         codigo: v.codigo,
-        modelo: `${v.marca} ${v.modelo} ${v.tipo}`,
+        modelo: `${v.marca} ${v.modelo} ${v.tipo || ''}`.trim(),
         categoria: v.categoria,
         mo: precio.mo,
         insumos: precio.insumos,
