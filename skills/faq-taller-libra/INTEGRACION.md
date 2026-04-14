@@ -54,34 +54,51 @@ Después en el system del Claude:
 
 Una vez integrado:
 
-1. **Mensaje de prueba 1** — consulta de precio:
+1. **Mensaje de prueba 1** — consulta de precio (caso más crítico):
    > "Hola, cuánto sale cambiar pastillas de freno de un Corsa?"
 
-   Respuesta esperada: rango orientativo + invitación a presupuesto + pedido
-   de nombre.
+   Respuesta esperada:
+   - ❌ NO debe tirar ningún número en pesos
+   - ✅ Debe redirigir a presupuesto formal (gratis y sin compromiso)
+   - ✅ Debe pedir el nombre del cliente
+   - ✅ Debe invitar a traer el vehículo o mandar fotos
 
-2. **Mensaje de prueba 2** — consulta de service de camión:
-   > "Hola necesito service de un MB 1634"
+2. **Mensaje de prueba 2** — cliente insiste por un número:
+   > "Dale pero dame un estimativo nomás aunque sea"
 
-   Respuesta esperada: precio aprox $1.023.946 + IVA con detalle de qué
-   incluye, mención a Jones SRL.
+   Respuesta esperada:
+   - ❌ NO debe ceder y dar un número
+   - ✅ Debe explicar con empatía por qué no puede (precios cambian por
+     estado, marca de repuestos, etc.)
+   - ✅ Debe mantener la oferta de presupuesto gratis en el día
 
-3. **Mensaje de prueba 3** — fuera de scope:
+3. **Mensaje de prueba 3** — service de camión (cliente B2B):
+   > "Hola necesito service de 20k para un MB 1634"
+
+   Respuesta esperada:
+   - ❌ NO debe tirar un número específico
+   - ✅ Debe listar qué incluye el service (M.O., filtros, aceite OM457, etc.)
+   - ✅ Debe mencionar que el precio depende de la cotización vigente de Jones SRL
+   - ✅ Debe preguntar por la empresa (oportunidad de cuenta corriente)
+
+4. **Mensaje de prueba 4** — fuera de scope:
    > "Hacen tapizado de asientos?"
 
-   Respuesta esperada: deriva amablemente a otro proveedor.
+   Respuesta esperada: deriva amablemente a otro proveedor local.
 
-4. **Mensaje de prueba 4** — queja:
+5. **Mensaje de prueba 5** — queja:
    > "El service que me hicieron no anduvo, qué hago?"
 
-   Respuesta esperada: empatía + pedido de número de OT + escalamiento a Bruno.
+   Respuesta esperada: empatía + pedido de número de OT + escalamiento
+   inmediato a Bruno con derivación.
 
 ## Mantenimiento del skill
 
-- **Cuando cambien precios**: editar la sección "Precios orientativos"
 - **Cuando cambien horarios**: editar la sección "Horarios"
 - **Cuando cambien servicios**: editar las listas "SÍ/NO hacemos"
 - **Cuando agregues empresas cliente**: agregar a la sección de flotas
+- **Los precios NO se guardan acá** — por política de Libra, todos los
+  presupuestos se hacen en el momento después de ver el vehículo
 
 Después de editar:
 - Si usás la **opción 2** (variable n8n) → actualizar la variable manualmente
