@@ -3,7 +3,7 @@ import { useAuth } from '../lib/AuthContext'
 import { EMPRESA } from '../lib/data'
 
 export default function Login() {
-  const { signIn, signUp } = useAuth()
+  const { signIn, signUp, enterAsGuest } = useAuth()
   const [modo, setModo] = useState('login') // 'login' | 'signup'
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -27,13 +27,20 @@ export default function Login() {
           return
         }
         // Caso: confirmación de email activada en Supabase
-        setMensaje('✓ Cuenta creada. Revisá tu email para confirmar la cuenta, o desactivá la confirmación por email en Supabase → Authentication → Providers → Email.')
+        setMensaje('✓ Cuenta creada. Usá "Entrar sin login" abajo para continuar, o confirmá el email desde Supabase.')
         setModo('login')
       } else {
         await signIn(email, password)
       }
     } catch (err) {
-      setError(err?.message || 'Error')
+      let msg = err?.message || 'Error'
+      // Mensajes más amigables
+      if (msg.includes('Email not confirmed') || msg.includes('no confirmado')) {
+        msg = 'Email no confirmado. Usá "Entrar sin login" abajo o confirmá el email desde Supabase.'
+      } else if (msg.includes('Invalid login credentials')) {
+        msg = 'Email o contraseña incorrectos. ¿Primera vez? Creá la cuenta primero.'
+      }
+      setError(msg)
     } finally {
       setLoading(false)
     }
@@ -128,6 +135,28 @@ export default function Login() {
               {modo === 'login' ? '¿Primera vez? Crear cuenta nueva' : '← Ya tengo cuenta, ingresar'}
             </button>
           </div>
+
+          {/* Separador */}
+          <div className="relative my-5">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-slate-200 dark:border-slate-700"></div>
+            </div>
+            <div className="relative flex justify-center text-xs">
+              <span className="bg-white dark:bg-slate-800 px-2 text-slate-400 dark:text-slate-500">o</span>
+            </div>
+          </div>
+
+          {/* Botón Entrar sin login */}
+          <button
+            type="button"
+            onClick={enterAsGuest}
+            className="w-full bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 py-2.5 rounded-lg font-bold text-sm transition-colors"
+          >
+            Entrar sin login
+          </button>
+          <p className="text-xs text-slate-400 dark:text-slate-500 text-center mt-2">
+            Uso rápido sin autenticación — los datos siguen protegidos en Supabase
+          </p>
 
           <p className="text-xs text-slate-400 dark:text-slate-500 text-center mt-4">
             Sistema interno — Taller Libra
