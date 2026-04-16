@@ -120,7 +120,7 @@ function ProtectedApp() {
                 <Route path="/nueva-ot" element={<NuevaOT vehiculos={vehiculos} clientes={clientes} onCrear={cargarDatos} />} />
                 <Route path="/presupuestos" element={<Presupuestos vehiculos={vehiculos} clientes={clientes} presupuestos={presupuestos} onRefresh={cargarDatos} />} />
                 <Route path="/facturacion" element={<Facturacion ordenes={ordenes} vehiculos={vehiculos} clientes={clientes} presupuestos={presupuestos} />} />
-                <Route path="/cobranzas" element={<Cobranzas ordenes={ordenes} clientes={clientes} />} />
+                <Route path="/cobranzas" element={<Cobranzas ordenes={ordenes} clientes={clientes} presupuestos={presupuestos} />} />
                 <Route path="/sistema-ia" element={<SistemaIA vehiculos={vehiculos} ordenes={ordenes} clientes={clientes} />} />
                 <Route path="*" element={<Navigate to="/" replace />} />
               </Routes>

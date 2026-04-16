@@ -3,11 +3,10 @@ import { Link } from 'react-router-dom'
 import { obtenerPrecio } from '../lib/data'
 
 /**
- * Página de Cobranzas: detecta OTs finalizadas hace más de N días
- * que todavía no están marcadas como "Entregado", y muestra el monto
- * estimado a cobrar.
+ * Página de Cobranzas: detecta OTs finalizadas + presupuestos aprobados
+ * pendientes de pago, y muestra el monto estimado a cobrar.
  */
-export default function Cobranzas({ ordenes, clientes }) {
+export default function Cobranzas({ ordenes, clientes, presupuestos = [] }) {
   const [diasVencimiento, setDiasVencimiento] = useState(30)
   const [filtroCliente, setFiltroCliente] = useState('todos')
 
@@ -21,54 +20,102 @@ export default function Cobranzas({ ordenes, clientes }) {
       .map(ot => {
         const fecha = new Date(ot.updated_at || ot.created_at)
         const diasDesde = Math.floor((ahora - fecha) / msDia)
-        const precio = obtenerPrecio(ot.vehiculos)
-        const totalNeto = precio.total
+
+        // Si tiene insumos_ot (reparación extra), usar precios reales
+        const tieneInsumos = ot.insumos_ot && ot.insumos_ot.length > 0
+        let totalNeto
+        if (tieneInsumos) {
+          totalNeto = ot.insumos_ot.reduce((s, it) => s + (it.cantidad || 1) * (it.precio_unit || 0), 0)
+        } else {
+          totalNeto = obtenerPrecio(ot.vehiculos).total
+        }
+
         const iva = Math.round(totalNeto * 0.21)
         const totalCobrar = totalNeto + iva
         return {
           ...ot,
+          tipo: 'ot',
+          numero: ot.ot_numero,
           fecha,
           diasDesde,
           totalNeto,
           iva,
           totalCobrar,
+          vehiculoCodigo: ot.vehiculos?.codigo || '-',
+          clienteNombre: ot.clientes?.nombre || 'Sin cliente',
+          clienteTel: ot.clientes?.telefono || '',
           vencida: ot.estado === 'Finalizado' && diasDesde >= diasVencimiento,
+          cobrada: ot.estado === 'Entregado',
         }
       })
-      .sort((a, b) => b.diasDesde - a.diasDesde)
   }, [ordenes, diasVencimiento])
 
-  const otsFiltradas = filtroCliente === 'todos'
-    ? otsCobrables
-    : otsCobrables.filter(ot => ot.cliente_id === filtroCliente)
+  // Presupuestos aprobados → cobrables
+  const presupuestosCobrables = useMemo(() => {
+    return presupuestos
+      .filter(p => p.estado === 'aprobado')
+      .map(p => {
+        const fecha = new Date(p.created_at || p.fecha)
+        const diasDesde = Math.floor((ahora - fecha) / msDia)
+        const totalNeto = parseFloat(p.subtotal_siva || 0)
+        const iva = parseFloat(p.iva || Math.round(totalNeto * 0.21))
+        const totalCobrar = parseFloat(p.total_civa || totalNeto + iva)
+        return {
+          id: p.id,
+          tipo: 'presupuesto',
+          numero: p.numero || `PP-${p.id?.slice(0, 8)}`,
+          estado: 'aprobado',
+          cliente_id: p.cliente_id,
+          fecha,
+          diasDesde,
+          totalNeto,
+          iva,
+          totalCobrar,
+          vehiculoCodigo: '-',
+          clienteNombre: p.clientes?.nombre || 'Sin cliente',
+          clienteTel: p.clientes?.telefono || '',
+          vencida: diasDesde >= diasVencimiento,
+          cobrada: false,
+        }
+      })
+  }, [presupuestos, diasVencimiento])
 
-  const vencidas = otsFiltradas.filter(ot => ot.vencida)
-  const porCobrar = otsFiltradas.filter(ot => ot.estado === 'Finalizado')
-  const cobradas = otsFiltradas.filter(ot => ot.estado === 'Entregado')
+  // Combinar OTs + presupuestos
+  const todosCobrables = useMemo(() => {
+    return [...otsCobrables, ...presupuestosCobrables].sort((a, b) => b.diasDesde - a.diasDesde)
+  }, [otsCobrables, presupuestosCobrables])
 
-  const totalVencido = vencidas.reduce((s, ot) => s + ot.totalCobrar, 0)
-  const totalPorCobrar = porCobrar.reduce((s, ot) => s + ot.totalCobrar, 0)
-  const totalCobrado = cobradas.reduce((s, ot) => s + ot.totalCobrar, 0)
+  const filtrados = filtroCliente === 'todos'
+    ? todosCobrables
+    : todosCobrables.filter(item => item.cliente_id === filtroCliente)
+
+  const vencidas = filtrados.filter(item => item.vencida && !item.cobrada)
+  const porCobrar = filtrados.filter(item => !item.cobrada)
+  const cobradas = filtrados.filter(item => item.cobrada)
+
+  const totalVencido = vencidas.reduce((s, item) => s + item.totalCobrar, 0)
+  const totalPorCobrar = porCobrar.reduce((s, item) => s + item.totalCobrar, 0)
+  const totalCobrado = cobradas.reduce((s, item) => s + item.totalCobrar, 0)
 
   const formatARS = (n) => '$' + (n || 0).toLocaleString('es-AR')
 
   // Agrupar vencidas por cliente
   const vencidasPorCliente = useMemo(() => {
     const grupos = {}
-    vencidas.forEach(ot => {
-      const nombre = ot.clientes?.nombre || 'Sin cliente'
-      if (!grupos[nombre]) grupos[nombre] = { cliente: nombre, telefono: ot.clientes?.telefono || '', ots: [], total: 0 }
-      grupos[nombre].ots.push(ot)
-      grupos[nombre].total += ot.totalCobrar
+    vencidas.forEach(item => {
+      const nombre = item.clienteNombre
+      if (!grupos[nombre]) grupos[nombre] = { cliente: nombre, telefono: item.clienteTel, items: [], total: 0 }
+      grupos[nombre].items.push(item)
+      grupos[nombre].total += item.totalCobrar
     })
     return Object.values(grupos).sort((a, b) => b.total - a.total)
   }, [vencidas])
 
   const generarMensajeWhatsApp = (grupo) => {
-    const otList = grupo.ots.map(ot =>
-      `• ${ot.ot_numero} — ${ot.vehiculos?.codigo || ''} — ${ot.fecha.toLocaleDateString('es-AR')} — ${formatARS(ot.totalCobrar)}`
+    const lista = grupo.items.map(item =>
+      `• ${item.numero} — ${item.tipo === 'ot' ? item.vehiculoCodigo : 'Presupuesto'} — ${item.fecha.toLocaleDateString('es-AR')} — ${formatARS(item.totalCobrar)}`
     ).join('%0A')
-    const mensaje = `Hola ${grupo.cliente}! Te recordamos las siguientes OTs pendientes de pago:%0A%0A${otList}%0A%0ATotal: ${formatARS(grupo.total)}%0A%0ALibra Fleet · Taller Libra`
+    const mensaje = `Hola ${grupo.cliente}! Te recordamos los siguientes trabajos pendientes de pago:%0A%0A${lista}%0A%0ATotal: ${formatARS(grupo.total)}%0A%0ALibra Fleet · Taller Libra`
     const telefono = (grupo.telefono || '').replace(/\D/g, '')
     const tel = telefono.startsWith('54') ? telefono : '54' + telefono
     return `https://wa.me/${tel || ''}?text=${mensaje}`
@@ -79,7 +126,7 @@ export default function Cobranzas({ ordenes, clientes }) {
       <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
         <div>
           <h2 className="text-2xl font-bold text-[#1F3864] dark:text-blue-300">💰 Cobranzas</h2>
-          <p className="text-slate-500 dark:text-slate-400 text-sm">OTs finalizadas pendientes de pago</p>
+          <p className="text-slate-500 dark:text-slate-400 text-sm">OTs finalizadas + presupuestos aprobados pendientes de pago</p>
         </div>
         <div className="flex items-center gap-3 flex-wrap">
           <label className="text-xs font-bold text-slate-500 dark:text-slate-400">Vence a los</label>
@@ -112,12 +159,14 @@ export default function Cobranzas({ ordenes, clientes }) {
         <div className="bg-red-500 text-white rounded-xl p-5 shadow-lg">
           <p className="text-xs opacity-80 uppercase tracking-wider">🔴 Vencido (+{diasVencimiento}d)</p>
           <p className="text-2xl font-bold mt-1">{formatARS(totalVencido)}</p>
-          <p className="text-xs opacity-80 mt-1">{vencidas.length} OT{vencidas.length !== 1 ? 's' : ''}</p>
+          <p className="text-xs opacity-80 mt-1">{vencidas.length} item{vencidas.length !== 1 ? 's' : ''}</p>
         </div>
         <div className="bg-[#2E75B6] text-white rounded-xl p-5 shadow-lg">
           <p className="text-xs opacity-80 uppercase tracking-wider">🔵 Por cobrar</p>
           <p className="text-2xl font-bold mt-1">{formatARS(totalPorCobrar)}</p>
-          <p className="text-xs opacity-80 mt-1">{porCobrar.length} OT{porCobrar.length !== 1 ? 's' : ''} finalizada{porCobrar.length !== 1 ? 's' : ''}</p>
+          <p className="text-xs opacity-80 mt-1">
+            {otsCobrables.filter(o => !o.cobrada).length} OT{otsCobrables.filter(o => !o.cobrada).length !== 1 ? 's' : ''} + {presupuestosCobrables.length} presup.
+          </p>
         </div>
         <div className="bg-green-600 text-white rounded-xl p-5 shadow-lg">
           <p className="text-xs opacity-80 uppercase tracking-wider">✅ Cobrado</p>
@@ -138,7 +187,7 @@ export default function Cobranzas({ ordenes, clientes }) {
                 <div className="flex-1 min-w-0">
                   <p className="font-bold text-red-800 dark:text-red-300">{grupo.cliente}</p>
                   <p className="text-xs text-red-600 dark:text-red-400">
-                    {grupo.ots.length} OT{grupo.ots.length !== 1 ? 's' : ''} · {formatARS(grupo.total)}
+                    {grupo.items.length} item{grupo.items.length !== 1 ? 's' : ''} · {formatARS(grupo.total)}
                   </p>
                 </div>
                 {grupo.telefono && (
@@ -160,18 +209,19 @@ export default function Cobranzas({ ordenes, clientes }) {
       {/* Tabla detallada */}
       <div className="bg-white dark:bg-slate-800 rounded-xl shadow overflow-hidden text-slate-800 dark:text-slate-200">
         <div className="bg-slate-50 dark:bg-slate-900 px-5 py-3 border-b border-slate-200 dark:border-slate-700">
-          <h3 className="font-bold text-[#1F3864] dark:text-blue-300">Todas las OTs cobrables ({otsFiltradas.length})</h3>
+          <h3 className="font-bold text-[#1F3864] dark:text-blue-300">Todos los cobrables ({filtrados.length})</h3>
         </div>
-        {otsFiltradas.length === 0 ? (
+        {filtrados.length === 0 ? (
           <div className="p-8 text-center text-slate-400 dark:text-slate-500">
-            No hay OTs finalizadas todavía
+            No hay OTs finalizadas ni presupuestos aprobados todavía
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="bg-[#D6E4F0] dark:bg-slate-700 text-[#1F3864] dark:text-blue-200 text-left">
-                  <th className="px-3 py-2">OT</th>
+                  <th className="px-3 py-2">Tipo</th>
+                  <th className="px-3 py-2">Número</th>
                   <th className="px-3 py-2">Fecha</th>
                   <th className="px-3 py-2">Días</th>
                   <th className="px-3 py-2">Cliente</th>
@@ -181,32 +231,44 @@ export default function Cobranzas({ ordenes, clientes }) {
                 </tr>
               </thead>
               <tbody>
-                {otsFiltradas.map(ot => (
-                  <tr key={ot.id} className={`border-b border-slate-100 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/50 ${ot.vencida ? 'bg-red-50/50 dark:bg-red-900/10' : ''}`}>
-                    <td className="px-3 py-2 font-mono font-bold">
-                      <Link to="/ordenes" className="text-[#1F3864] dark:text-blue-300 hover:underline">{ot.ot_numero}</Link>
-                    </td>
-                    <td className="px-3 py-2 text-xs text-slate-500 dark:text-slate-400">
-                      {ot.fecha.toLocaleDateString('es-AR')}
-                    </td>
-                    <td className="px-3 py-2 text-xs">
-                      <span className={`font-bold ${ot.vencida ? 'text-red-600 dark:text-red-400' : 'text-slate-500 dark:text-slate-400'}`}>
-                        {ot.diasDesde}d
-                      </span>
-                    </td>
-                    <td className="px-3 py-2">{ot.clientes?.nombre || '-'}</td>
-                    <td className="px-3 py-2 font-mono text-xs">{ot.vehiculos?.codigo || '-'}</td>
+                {filtrados.map(item => (
+                  <tr key={item.id} className={`border-b border-slate-100 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/50 ${item.vencida && !item.cobrada ? 'bg-red-50/50 dark:bg-red-900/10' : ''}`}>
                     <td className="px-3 py-2">
                       <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                        ot.vencida ? 'bg-red-100 text-red-700 dark:bg-red-900/50 dark:text-red-300' :
-                        ot.estado === 'Finalizado' ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/50 dark:text-amber-300' :
-                        'bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-300'
+                        item.tipo === 'ot'
+                          ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300'
+                          : 'bg-purple-100 text-purple-700 dark:bg-purple-900/50 dark:text-purple-300'
                       }`}>
-                        {ot.vencida ? 'VENCIDO' : ot.estado === 'Finalizado' ? 'Por cobrar' : 'Cobrado'}
+                        {item.tipo === 'ot' ? 'OT' : 'PP'}
+                      </span>
+                    </td>
+                    <td className="px-3 py-2 font-mono font-bold">
+                      <Link to={item.tipo === 'ot' ? '/ordenes' : '/presupuestos'} className="text-[#1F3864] dark:text-blue-300 hover:underline">
+                        {item.numero}
+                      </Link>
+                    </td>
+                    <td className="px-3 py-2 text-xs text-slate-500 dark:text-slate-400">
+                      {item.fecha.toLocaleDateString('es-AR')}
+                    </td>
+                    <td className="px-3 py-2 text-xs">
+                      <span className={`font-bold ${item.vencida && !item.cobrada ? 'text-red-600 dark:text-red-400' : 'text-slate-500 dark:text-slate-400'}`}>
+                        {item.diasDesde}d
+                      </span>
+                    </td>
+                    <td className="px-3 py-2">{item.clienteNombre}</td>
+                    <td className="px-3 py-2 font-mono text-xs">{item.vehiculoCodigo}</td>
+                    <td className="px-3 py-2">
+                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                        item.cobrada ? 'bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-300' :
+                        item.vencida ? 'bg-red-100 text-red-700 dark:bg-red-900/50 dark:text-red-300' :
+                        item.tipo === 'presupuesto' ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/50 dark:text-purple-300' :
+                        'bg-amber-100 text-amber-700 dark:bg-amber-900/50 dark:text-amber-300'
+                      }`}>
+                        {item.cobrada ? 'Cobrado' : item.vencida ? 'VENCIDO' : item.tipo === 'presupuesto' ? 'Aprobado' : 'Por cobrar'}
                       </span>
                     </td>
                     <td className="px-3 py-2 text-right font-mono font-bold">
-                      {formatARS(ot.totalCobrar)}
+                      {formatARS(item.totalCobrar)}
                     </td>
                   </tr>
                 ))}
