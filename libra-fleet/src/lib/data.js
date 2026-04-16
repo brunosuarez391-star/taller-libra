@@ -122,6 +122,12 @@ export const SERVICIOS = {
     ],
     tiempo: '20-30 horas',
   },
+  reparacion: {
+    nombre: 'Reparación / Trabajo extra',
+    items: [],
+    tiempo: 'Variable',
+    esExtra: true,
+  },
 }
 
 export const ESTADOS_OT = ['Ingresado', 'En proceso', 'Finalizado', 'Entregado']

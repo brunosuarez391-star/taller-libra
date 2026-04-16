@@ -45,16 +45,26 @@ export default function Facturacion({ ordenes, vehiculos, clientes, presupuestos
       if (!grupos[clienteNombre]) {
         grupos[clienteNombre] = { cliente: clienteNombre, ots: [], presupuestos: [], totalMO: 0, totalInsumos: 0, totalNeto: 0 }
       }
-      const precio = obtenerPrecio(ot.vehiculos)
-      grupos[clienteNombre].ots.push({
-        ...ot,
-        mo: precio.mo,
-        insumos: precio.insumos,
-        total: precio.total,
-      })
-      grupos[clienteNombre].totalMO += precio.mo
-      grupos[clienteNombre].totalInsumos += precio.insumos
-      grupos[clienteNombre].totalNeto += precio.total
+
+      // Si la OT tiene insumos_ot cargados (reparación/extra), usar esos precios reales
+      const tieneInsumos = ot.insumos_ot && ot.insumos_ot.length > 0
+      let mo, insumos, total
+
+      if (tieneInsumos) {
+        total = ot.insumos_ot.reduce((s, it) => s + (it.cantidad || 1) * (it.precio_unit || 0), 0)
+        mo = 0
+        insumos = total
+      } else {
+        const precio = obtenerPrecio(ot.vehiculos)
+        mo = precio.mo
+        insumos = precio.insumos
+        total = precio.total
+      }
+
+      grupos[clienteNombre].ots.push({ ...ot, mo, insumos, total, tieneInsumos })
+      grupos[clienteNombre].totalMO += mo
+      grupos[clienteNombre].totalInsumos += insumos
+      grupos[clienteNombre].totalNeto += total
     })
 
     // Sumar presupuestos aprobados
