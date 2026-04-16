@@ -197,7 +197,7 @@ export async function crearPresupuesto(presupuesto) {
  * }
  */
 export async function crearPresupuestoCompleto(payload) {
-  const { items = [], ...cabecera } = payload
+  const { items = [], vehiculo_id, ...cabecera } = payload
   const { data: presupuesto, error: e1 } = await supabase
     .from('presupuestos')
     .insert(cabecera)
@@ -208,7 +208,7 @@ export async function crearPresupuestoCompleto(payload) {
   if (items.length > 0) {
     const filas = items.map(it => ({
       presupuesto_id: presupuesto.id,
-      vehiculo_id: payload.vehiculo_id || null,
+      vehiculo_id: vehiculo_id || null,
       descripcion: it.descripcion,
       mano_obra: 0,
       insumos: 0,
