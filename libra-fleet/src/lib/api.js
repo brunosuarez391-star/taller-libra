@@ -60,7 +60,7 @@ export async function crearCliente(cliente) {
 
 // ============ ORDENES DE TRABAJO ============
 export async function getOrdenes() {
-  const { data, error } = await supabase.from('ordenes_trabajo').select('*, vehiculos(codigo, modelo, tipo), clientes(nombre)').order('created_at', { ascending: false })
+  const { data, error } = await supabase.from('ordenes_trabajo').select('*, vehiculos(codigo, modelo, tipo, marca, categoria), clientes(nombre, telefono), insumos_ot(*)').order('created_at', { ascending: false })
   if (error) throw error
   return data
 }
@@ -157,6 +157,19 @@ export async function eliminarOT(otId) {
 export async function crearServiciosOT(otId, items) {
   const servicios = items.map(desc => ({ ot_id: otId, descripcion: desc, completado: false }))
   const { error } = await supabase.from('servicios_ot').insert(servicios)
+  if (error) throw error
+}
+
+// ============ INSUMOS OT (trabajos extras / reparaciones con precios) ============
+export async function crearInsumosOT(otId, items) {
+  const filas = items.map(it => ({
+    ot_id: otId,
+    descripcion: it.descripcion,
+    cantidad: it.cantidad || 1,
+    precio_unit: it.precio_unit || 0,
+    proveedor: it.proveedor || '',
+  }))
+  const { error } = await supabase.from('insumos_ot').insert(filas)
   if (error) throw error
 }
 

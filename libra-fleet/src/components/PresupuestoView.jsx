@@ -191,6 +191,25 @@ export default function PresupuestoView({ presupuesto, onReset, onGuardar }) {
           <button onClick={() => window.print()} className="bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 px-4 py-2 rounded-lg font-bold text-sm">
             🖨️ Imprimir
           </button>
+          {presupuesto.clienteTel && (
+            <a
+              href={`https://wa.me/${presupuesto.clienteTel.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(
+                `*${EMPRESA.nombre}*\n` +
+                `Presupuesto: ${presupuesto.numero}\n` +
+                `Fecha: ${presupuesto.fecha}\n` +
+                (presupuesto.vehiculo ? `Vehículo: ${presupuesto.vehiculo}\n` : '') +
+                `\n*Detalle:*\n` +
+                presupuesto.items.map(it => `• ${it.descripcion} x${it.cantidad} — ${formatARS(it.cantidad * it.precio)}`).join('\n') +
+                `\n\nSubtotal: ${formatARS(presupuesto.subtotal)}\nIVA 21%: ${formatARS(presupuesto.iva)}\n*Total: ${formatARS(presupuesto.total)}*` +
+                `\n\n📍 ${EMPRESA.direccion}, ${EMPRESA.ciudad}\n📞 ${EMPRESA.tel}`
+              )}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-bold text-sm"
+            >
+              📲 WhatsApp
+            </a>
+          )}
           <button onClick={onReset} className="bg-[#2E75B6] hover:bg-[#1F3864] text-white px-4 py-2 rounded-lg font-bold text-sm">
             ➕ Nuevo
           </button>
