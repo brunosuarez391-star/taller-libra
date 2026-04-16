@@ -36,6 +36,7 @@ export default function Cobranzas({ ordenes, clientes, presupuestos = [] }) {
           ...ot,
           tipo: 'ot',
           numero: ot.ot_numero,
+          remito: ot.remito_numero || '',
           fecha,
           diasDesde,
           totalNeto,
@@ -64,6 +65,7 @@ export default function Cobranzas({ ordenes, clientes, presupuestos = [] }) {
           id: p.id,
           tipo: 'presupuesto',
           numero: p.numero || `PP-${p.id?.slice(0, 8)}`,
+          remito: p.remito_numero || '',
           estado: 'aprobado',
           cliente_id: p.cliente_id,
           fecha,
@@ -222,6 +224,7 @@ export default function Cobranzas({ ordenes, clientes, presupuestos = [] }) {
                 <tr className="bg-[#D6E4F0] dark:bg-slate-700 text-[#1F3864] dark:text-blue-200 text-left">
                   <th className="px-3 py-2">Tipo</th>
                   <th className="px-3 py-2">Número</th>
+                  <th className="px-3 py-2">Remito</th>
                   <th className="px-3 py-2">Fecha</th>
                   <th className="px-3 py-2">Días</th>
                   <th className="px-3 py-2">Cliente</th>
@@ -246,6 +249,13 @@ export default function Cobranzas({ ordenes, clientes, presupuestos = [] }) {
                       <Link to={item.tipo === 'ot' ? '/ordenes' : '/presupuestos'} className="text-[#1F3864] dark:text-blue-300 hover:underline">
                         {item.numero}
                       </Link>
+                    </td>
+                    <td className="px-3 py-2 font-mono text-xs">
+                      {item.remito ? (
+                        <span className="text-purple-700 dark:text-purple-300 font-bold">📄 {item.remito}</span>
+                      ) : (
+                        <span className="text-slate-400 dark:text-slate-500">—</span>
+                      )}
                     </td>
                     <td className="px-3 py-2 text-xs text-slate-500 dark:text-slate-400">
                       {item.fecha.toLocaleDateString('es-AR')}

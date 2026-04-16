@@ -233,6 +233,22 @@ export async function actualizarEstadoPresupuesto(id, estado) {
   if (error) throw error
 }
 
+export async function actualizarRemitoPresupuesto(id, remito_numero, remito_fecha) {
+  const { error } = await supabase
+    .from('presupuestos')
+    .update({ remito_numero: remito_numero || null, remito_fecha: remito_fecha || null })
+    .eq('id', id)
+  if (error) throw error
+}
+
+export async function actualizarRemitoOT(id, remito_numero, remito_fecha) {
+  const { error } = await supabase
+    .from('ordenes_trabajo')
+    .update({ remito_numero: remito_numero || null, remito_fecha: remito_fecha || null, updated_at: new Date().toISOString() })
+    .eq('id', id)
+  if (error) throw error
+}
+
 export async function eliminarPresupuesto(id) {
   const { error: e1 } = await supabase.from('items_presupuesto').delete().eq('presupuesto_id', id)
   if (e1) throw e1

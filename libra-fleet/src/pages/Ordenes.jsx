@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { ESTADOS_OT } from '../lib/data'
-import { actualizarEstadoOT, actualizarOT, eliminarOT } from '../lib/api'
+import { actualizarEstadoOT, actualizarOT, actualizarRemitoOT, eliminarOT } from '../lib/api'
 import EtiquetaService from '../components/EtiquetaService'
 
 export default function Ordenes({ ordenes, onRefresh }) {
@@ -245,6 +245,11 @@ export default function Ordenes({ ordenes, onRefresh }) {
                     'bg-slate-100 text-slate-800'
                   }`}>{ot.estado}</span>
                   <span className="text-xs text-slate-400">{new Date(ot.created_at).toLocaleDateString('es-AR')}</span>
+                  {ot.remito_numero && (
+                    <span className="bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 px-2 py-0.5 rounded-full text-xs font-bold">
+                      📄 Remito {ot.remito_numero}
+                    </span>
+                  )}
                 </div>
 
                 {/* Botones de acción */}
@@ -346,6 +351,32 @@ export default function Ordenes({ ordenes, onRefresh }) {
 
               {ot.observaciones && editando !== ot.id && (
                 <p className="mt-2 text-xs text-slate-400 italic">📝 {ot.observaciones}</p>
+              )}
+
+              {/* Remito — editable */}
+              {editando !== ot.id && (
+                <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-700 flex items-center gap-2 flex-wrap">
+                  <span className="text-xs font-bold text-slate-500 dark:text-slate-400">📄 Remito:</span>
+                  <input
+                    type="text"
+                    defaultValue={ot.remito_numero || ''}
+                    placeholder="N° remito (ej: 0001-00000123)"
+                    onBlur={async (e) => {
+                      const val = e.target.value.trim()
+                      if (val === (ot.remito_numero || '')) return
+                      try {
+                        await actualizarRemitoOT(ot.id, val, val ? new Date().toISOString().slice(0, 10) : null)
+                        if (onRefresh) await onRefresh()
+                      } catch (err) { alert('Error guardando remito: ' + err.message) }
+                    }}
+                    className="border border-slate-300 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100 rounded px-2 py-1 text-xs w-48 focus:border-[#2E75B6] focus:outline-none"
+                  />
+                  {ot.remito_fecha && (
+                    <span className="text-xs text-slate-400">
+                      {new Date(ot.remito_fecha).toLocaleDateString('es-AR')}
+                    </span>
+                  )}
+                </div>
               )}
             </div>
           ))}

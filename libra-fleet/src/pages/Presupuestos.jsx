@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react'
 import { obtenerPrecio, SERVICIOS } from '../lib/data'
-import { crearPresupuestoCompleto, actualizarEstadoPresupuesto, eliminarPresupuesto } from '../lib/api'
+import { crearPresupuestoCompleto, actualizarEstadoPresupuesto, actualizarRemitoPresupuesto, eliminarPresupuesto } from '../lib/api'
 import PresupuestoView from '../components/PresupuestoView'
 
 // Tipos de presupuesto
@@ -506,6 +506,11 @@ function ListaPresupuestos({ presupuestos, onNuevo, onRefresh }) {
                         {p.estado}
                       </span>
                       <span className="text-xs text-slate-400 dark:text-slate-500">{fecha}</span>
+                      {p.remito_numero && (
+                        <span className="bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 px-2 py-0.5 rounded-full text-xs font-bold">
+                          📄 Remito {p.remito_numero}
+                        </span>
+                      )}
                     </div>
                     <p className="text-sm text-slate-700 dark:text-slate-200 font-semibold">
                       {p.clientes?.nombre || 'Sin cliente'}
@@ -542,6 +547,30 @@ function ListaPresupuestos({ presupuestos, onNuevo, onRefresh }) {
                       🗑️
                     </button>
                   </div>
+                </div>
+
+                {/* Remito — editable */}
+                <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-700 flex items-center gap-2 flex-wrap">
+                  <span className="text-xs font-bold text-slate-500 dark:text-slate-400">📄 Remito:</span>
+                  <input
+                    type="text"
+                    defaultValue={p.remito_numero || ''}
+                    placeholder="N° remito (ej: 0001-00000123)"
+                    onBlur={async (e) => {
+                      const val = e.target.value.trim()
+                      if (val === (p.remito_numero || '')) return
+                      try {
+                        await actualizarRemitoPresupuesto(p.id, val, val ? new Date().toISOString().slice(0, 10) : null)
+                        if (onRefresh) await onRefresh()
+                      } catch (err) { alert('Error guardando remito: ' + err.message) }
+                    }}
+                    className="border border-slate-300 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100 rounded px-2 py-1 text-xs w-48 focus:border-[#2E75B6] focus:outline-none"
+                  />
+                  {p.remito_fecha && (
+                    <span className="text-xs text-slate-400">
+                      {new Date(p.remito_fecha).toLocaleDateString('es-AR')}
+                    </span>
+                  )}
                 </div>
               </div>
             )
