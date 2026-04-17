@@ -1,0 +1,15 @@
+{
+  "name": "libra-fleet-agent",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Claude Managed Agent for Libra Fleet — truck fleet management assistant",
+  "scripts": {
+    "setup": "node --env-file=.env setup.js",
+    "start": "node --env-file=.env run.js",
+    "chat": "node --env-file=.env run.js"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.88.0"
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "name": "Libra Fleet — Taller Libra",
+  "short_name": "Libra Fleet",
+  "description": "Sistema de gestión de flota de camiones — Libra Servicios Industriales",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#0f172a",
+  "theme_color": "#1F3864",
+  "lang": "es-AR",
+  "scope": "/",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["business", "productivity"]
+}
