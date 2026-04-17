@@ -1,5 +1,22 @@
 import { supabase } from './supabase'
 
+// ============ BUS DE EVENTOS (n8n) ============
+const BUS_URL = 'https://brunosuerez.app.n8n.cloud/webhook/taller-libra-bus'
+
+export async function dispararEvento(evento, datos = {}, origen = 'libra_fleet_app') {
+  try {
+    const res = await fetch(BUS_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ evento, datos, origen })
+    })
+    return await res.json().catch(() => ({ status: 'ok' }))
+  } catch (err) {
+    console.warn('Bus no respondió:', err.message)
+    return { status: 'bus_offline' }
+  }
+}
+
 // ============ CLIENTES ============
 export async function getClientes() {
   const { data, error } = await supabase.from('clientes').select('*').order('nombre')
@@ -47,14 +64,41 @@ export async function getOrdenesPorCodigo(codigo) {
 }
 
 export async function crearOrden(orden) {
-  const { data, error } = await supabase.from('ordenes_trabajo').insert(orden).select().single()
+  const { data, error } = await supabase.from('ordenes_trabajo').insert(orden).select('*, vehiculos(codigo, modelo, tipo, categoria), clientes(nombre, telefono)').single()
   if (error) throw error
+  // Disparar evento al Bus según categoría del vehículo
+  const esPesada = data.vehiculos?.categoria === 'Camión Pesado' || data.vehiculos?.categoria === 'Tractor'
+  const evento = esPesada ? 'flota_recepcion' : 'flota_liviana_recepcion'
+  dispararEvento(evento, {
+    ot_numero: data.ot_numero,
+    cliente: data.clientes?.nombre,
+    telefono: data.clientes?.telefono,
+    codigo: data.vehiculos?.codigo,
+    modelo: data.vehiculos?.modelo,
+    categoria: data.vehiculos?.categoria,
+    km: data.km_ingreso,
+    proximo_km: data.km_proximo,
+    servicio: data.servicio_nombre,
+    mecanico: data.mecanico,
+  })
   return data
 }
 
 export async function actualizarEstadoOT(otId, estado) {
-  const { error } = await supabase.from('ordenes_trabajo').update({ estado, updated_at: new Date().toISOString() }).eq('id', otId)
+  const { data, error } = await supabase.from('ordenes_trabajo').update({ estado, updated_at: new Date().toISOString() }).eq('id', otId).select('*, vehiculos(codigo, modelo, tipo), clientes(nombre, telefono)').single()
   if (error) throw error
+  // Si se marca como Finalizada, disparar ot_finalizada al Bus
+  if (estado === 'Finalizado') {
+    dispararEvento('ot_finalizada', {
+      ot_numero: data.ot_numero,
+      cliente: data.clientes?.nombre,
+      telefono: data.clientes?.telefono || '5492974773784',
+      vehiculo: `${data.vehiculos?.codigo || ''} ${data.vehiculos?.modelo || ''} ${data.vehiculos?.tipo || ''}`.trim(),
+      km: data.km_ingreso,
+      proximo_km: data.km_proximo,
+      servicio: data.servicio_nombre,
+    })
+  }
 }
 
 export async function actualizarOT(otId, campos) {
