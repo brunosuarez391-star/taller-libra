@@ -1,266 +1,85 @@
 import React, { useState, useEffect } from 'react'
+import { styles, theme } from './styles.js'
+import { loadState, saveState, resetState } from './storage.js'
+import { HOTEL } from './data.js'
 
-const styles = {
-  app: {
-    fontFamily: "'Segoe UI', system-ui, sans-serif",
-    background: '#0f172a',
-    color: '#e2e8f0',
-    minHeight: '100vh',
-    margin: 0,
-  },
-  header: {
-    background: '#1e293b',
-    borderBottom: '1px solid #334155',
-    padding: '16px 32px',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  headerTitle: {
-    fontSize: '22px',
-    fontWeight: '700',
-    color: '#38bdf8',
-    margin: 0,
-  },
-  headerSub: {
-    fontSize: '13px',
-    color: '#94a3b8',
-    margin: '2px 0 0',
-  },
-  main: {
-    padding: '32px',
-    maxWidth: '1200px',
-    margin: '0 auto',
-  },
-  statsGrid: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
-    gap: '16px',
-    marginBottom: '32px',
-  },
-  statCard: {
-    background: '#1e293b',
-    border: '1px solid #334155',
-    borderRadius: '12px',
-    padding: '20px',
-  },
-  statValue: {
-    fontSize: '36px',
-    fontWeight: '700',
-    margin: '4px 0',
-  },
-  statLabel: {
-    fontSize: '12px',
-    color: '#94a3b8',
-    textTransform: 'uppercase',
-    letterSpacing: '0.06em',
-  },
-  sectionTitle: {
-    fontSize: '17px',
-    fontWeight: '600',
-    marginBottom: '14px',
-    color: '#cbd5e1',
-  },
-  tableWrap: {
-    background: '#1e293b',
-    borderRadius: '12px',
-    border: '1px solid #334155',
-    overflow: 'hidden',
-  },
-  table: {
-    width: '100%',
-    borderCollapse: 'collapse',
-  },
-  th: {
-    textAlign: 'left',
-    padding: '11px 16px',
-    background: '#0f172a',
-    color: '#94a3b8',
-    fontSize: '11px',
-    textTransform: 'uppercase',
-    letterSpacing: '0.08em',
-    fontWeight: '600',
-  },
-  td: {
-    padding: '13px 16px',
-    borderTop: '1px solid #334155',
-    fontSize: '14px',
-  },
-  button: {
-    padding: '5px 13px',
-    border: 'none',
-    borderRadius: '6px',
-    cursor: 'pointer',
-    fontSize: '12px',
-    fontWeight: '600',
-    background: '#0ea5e9',
-    color: '#fff',
-  },
-  loadingText: {
-    textAlign: 'center',
-    padding: '48px',
-    color: '#94a3b8',
-  },
-  errorText: {
-    textAlign: 'center',
-    padding: '48px',
-    color: '#f87171',
-  },
-}
+import Dashboard from './views/Dashboard.jsx'
+import Rooms from './views/Rooms.jsx'
+import Reservations from './views/Reservations.jsx'
+import CheckInOut from './views/CheckInOut.jsx'
+import Guests from './views/Guests.jsx'
+import Billing from './views/Billing.jsx'
+import Housekeeping from './views/Housekeeping.jsx'
+import Reports from './views/Reports.jsx'
 
-const STATUS_LABELS = {
-  active: 'Activo',
-  maintenance: 'Mantenimiento',
-  inactive: 'Inactivo',
-}
-
-function badgeStyle(status) {
-  const map = {
-    active:      { bg: '#052e16', color: '#4ade80', border: '#166534' },
-    maintenance: { bg: '#1c1917', color: '#fb923c', border: '#9a3412' },
-    inactive:    { bg: '#1e293b', color: '#94a3b8', border: '#475569' },
-  }
-  const s = map[status] ?? map.inactive
-  return {
-    display: 'inline-block',
-    padding: '3px 10px',
-    borderRadius: '20px',
-    fontSize: '12px',
-    fontWeight: '600',
-    background: s.bg,
-    color: s.color,
-    border: `1px solid ${s.border}`,
-  }
-}
+const NAV = [
+  { key: 'dashboard',    icon: '■', label: 'Panel' },
+  { key: 'rooms',        icon: '▣', label: 'Habitaciones' },
+  { key: 'reservations', icon: '◉', label: 'Reservas' },
+  { key: 'checkin',      icon: '⇄', label: 'Check-in / out' },
+  { key: 'guests',       icon: '◎', label: 'Huéspedes' },
+  { key: 'billing',      icon: '$', label: 'Facturación' },
+  { key: 'housekeeping', icon: '✦', label: 'Limpieza' },
+  { key: 'reports',      icon: '⌬', label: 'Reportes' },
+]
 
 export default function App() {
-  const [vehicles, setVehicles] = useState([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState(null)
+  const [state, setState] = useState(() => loadState())
+  const [page, setPage] = useState('dashboard')
   const [version, setVersion] = useState('')
 
+  useEffect(() => { saveState(state) }, [state])
+
   useEffect(() => {
-    async function loadData() {
-      try {
-        if (window.electronAPI) {
-          const [data, ver] = await Promise.all([
-            window.electronAPI.getVehicles(),
-            window.electronAPI.getVersion(),
-          ])
-          setVehicles(data)
-          setVersion(ver)
-        } else {
-          setVehicles([])
-        }
-      } catch (err) {
-        setError('Error al cargar los datos de la flota: ' + err.message)
-      } finally {
-        setLoading(false)
-      }
+    if (window.electronAPI?.getVersion) {
+      window.electronAPI.getVersion().then(setVersion).catch(() => {})
     }
-    loadData()
   }, [])
 
-  async function handleStatusChange(vehicle) {
-    const next =
-      vehicle.status === 'active' ? 'maintenance' :
-      vehicle.status === 'maintenance' ? 'inactive' : 'active'
-
-    if (!window.electronAPI) return
-    const result = await window.electronAPI.updateVehicleStatus(vehicle.id, next)
-    if (result.success) {
-      setVehicles(prev => prev.map(v => v.id === vehicle.id ? { ...v, status: next } : v))
-    }
+  function handleReset() {
+    if (!confirm('Esto borrará TODOS los datos (reservas, huéspedes, pagos) y restaurará las 60 habitaciones iniciales. ¿Continuar?')) return
+    setState(resetState())
+    setPage('dashboard')
   }
 
-  const activeCount      = vehicles.filter(v => v.status === 'active').length
-  const maintenanceCount = vehicles.filter(v => v.status === 'maintenance').length
-  const inactiveCount    = vehicles.filter(v => v.status === 'inactive').length
-  const totalKm          = vehicles.reduce((sum, v) => sum + v.km, 0)
+  const Page = {
+    dashboard: <Dashboard state={state} onNavigate={setPage} />,
+    rooms: <Rooms state={state} setState={setState} />,
+    reservations: <Reservations state={state} setState={setState} />,
+    checkin: <CheckInOut state={state} setState={setState} />,
+    guests: <Guests state={state} setState={setState} />,
+    billing: <Billing state={state} setState={setState} />,
+    housekeeping: <Housekeeping state={state} setState={setState} />,
+    reports: <Reports state={state} />,
+  }[page]
 
   return (
     <div style={styles.app}>
-      <header style={styles.header}>
-        <div>
-          <h1 style={styles.headerTitle}>Libra Flota</h1>
-          <p style={styles.headerSub}>Sistema de Gestión de Flota de Camiones</p>
+      <aside style={styles.sidebar}>
+        <div style={styles.brand}>
+          <h1 style={styles.brandTitle}>{HOTEL.name}</h1>
+          <div style={styles.brandSub}>{HOTEL.city}</div>
         </div>
-        <div style={{ fontSize: '12px', color: '#475569' }}>
-          {version && `v${version}`}&nbsp;&nbsp;|&nbsp;&nbsp;
-          {new Date().toLocaleDateString('es-ES', { day: '2-digit', month: 'long', year: 'numeric' })}
-        </div>
-      </header>
-
-      <main style={styles.main}>
-        <div style={styles.statsGrid}>
-          <div style={styles.statCard}>
-            <div style={styles.statLabel}>Total vehículos</div>
-            <div style={{ ...styles.statValue, color: '#38bdf8' }}>{vehicles.length}</div>
-          </div>
-          <div style={styles.statCard}>
-            <div style={styles.statLabel}>Activos</div>
-            <div style={{ ...styles.statValue, color: '#4ade80' }}>{activeCount}</div>
-          </div>
-          <div style={styles.statCard}>
-            <div style={styles.statLabel}>Mantenimiento</div>
-            <div style={{ ...styles.statValue, color: '#fb923c' }}>{maintenanceCount}</div>
-          </div>
-          <div style={styles.statCard}>
-            <div style={styles.statLabel}>Inactivos</div>
-            <div style={{ ...styles.statValue, color: '#94a3b8' }}>{inactiveCount}</div>
-          </div>
-          <div style={styles.statCard}>
-            <div style={styles.statLabel}>Km totales (flota)</div>
-            <div style={{ ...styles.statValue, color: '#c084fc', fontSize: '26px' }}>
-              {totalKm.toLocaleString('es-ES')}
-            </div>
+        {NAV.map((n) => (
+          <button
+            key={n.key}
+            style={styles.navBtn(page === n.key)}
+            onClick={() => setPage(n.key)}
+          >
+            <span style={styles.navIcon}>{n.icon}</span>
+            <span>{n.label}</span>
+          </button>
+        ))}
+        <div style={{ marginTop: 'auto', paddingTop: '16px', borderTop: `1px solid ${theme.border}` }}>
+          <button style={{ ...styles.btnSmall, width: '100%' }} onClick={handleReset}>
+            Restablecer datos
+          </button>
+          <div style={{ fontSize: '11px', color: theme.textMuted, marginTop: '10px', textAlign: 'center' }}>
+            {version ? `v${version}` : 'Web'} · {new Date().toLocaleDateString('es-AR')}
           </div>
         </div>
-
-        <h2 style={styles.sectionTitle}>Vehículos de la Flota</h2>
-
-        {loading && <p style={styles.loadingText}>Cargando datos de la flota...</p>}
-        {error   && <p style={styles.errorText}>{error}</p>}
-
-        {!loading && !error && (
-          <div style={styles.tableWrap}>
-            <table style={styles.table}>
-              <thead>
-                <tr>
-                  <th style={styles.th}>Matrícula</th>
-                  <th style={styles.th}>Modelo</th>
-                  <th style={styles.th}>Conductor</th>
-                  <th style={styles.th}>Estado</th>
-                  <th style={styles.th}>Kilómetros</th>
-                  <th style={styles.th}>Acción</th>
-                </tr>
-              </thead>
-              <tbody>
-                {vehicles.map(v => (
-                  <tr key={v.id}>
-                    <td style={{ ...styles.td, fontWeight: '600', color: '#38bdf8' }}>{v.plate}</td>
-                    <td style={styles.td}>{v.model}</td>
-                    <td style={styles.td}>{v.driver}</td>
-                    <td style={styles.td}>
-                      <span style={badgeStyle(v.status)}>
-                        {STATUS_LABELS[v.status] ?? v.status}
-                      </span>
-                    </td>
-                    <td style={{ ...styles.td, color: '#94a3b8' }}>
-                      {v.km.toLocaleString('es-ES')} km
-                    </td>
-                    <td style={styles.td}>
-                      <button style={styles.button} onClick={() => handleStatusChange(v)}>
-                        Cambiar Estado
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </main>
+      </aside>
+      <main style={styles.main}>{Page}</main>
     </div>
   )
 }
