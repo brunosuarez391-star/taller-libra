@@ -1,7 +1,16 @@
-const { app, BrowserWindow, ipcMain } = require('electron')
+const { app, BrowserWindow, ipcMain, session } = require('electron')
 const path = require('path')
 
 const isDev = !app.isPackaged
+
+function applyCSP() {
+  const csp = isDev
+    ? "default-src 'self' 'unsafe-inline' data: blob: ws://localhost:5173 http://localhost:5173; script-src 'self' 'unsafe-inline' 'unsafe-eval' http://localhost:5173; connect-src 'self' ws://localhost:5173 http://localhost:5173; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:;"
+    : "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:;"
+  session.defaultSession.webRequest.onHeadersReceived((details, cb) => {
+    cb({ responseHeaders: { ...details.responseHeaders, 'Content-Security-Policy': [csp] } })
+  })
+}
 
 function createWindow() {
   const win = new BrowserWindow({
@@ -28,6 +37,7 @@ function createWindow() {
 }
 
 app.whenReady().then(() => {
+  applyCSP()
   createWindow()
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow()
