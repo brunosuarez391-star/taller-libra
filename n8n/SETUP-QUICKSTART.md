@@ -17,14 +17,24 @@ Abrí estas 4 pestañas, las vas a usar todo el rato:
 
 ---
 
-## 1 · Subir los 4 workflows (3 min)
+## 1 · Subir los 4 workflows (5 min)
 
-1. En n8n, botón **+ Add workflow** (arriba a la derecha)
-2. Menú `⋮` (tres puntos al lado de Save) → **Import from File**
-3. Subí `n8n/workflows/ALL-IN-ONE.json` del repo
-4. Se crean los 4 workflows de una vez. **Activá cada uno** con el toggle arriba.
-5. Verificá que la URL del webhook del router sea exactamente:
+> ⚠️ **Importante:** la UI de n8n Cloud importa **un workflow por vez**. Si usás `ALL-IN-ONE.cli.json` (que es un array) te va a dar **error 400**. Ese archivo es solo para el CLI (`n8n import:workflow`).
+>
+> **Por UI tenés que subir los 4 archivos individuales**, en este orden:
+
+1. En n8n, clic en **+ Agregar workflow** (o **Crear nuevo**)
+2. Menú `⋮` (tres puntos arriba a la derecha, al lado de Save/Publicar) → **Importar desde archivo** (*Import from File*)
+3. Subí **`n8n/workflows/taller-libra-bus.json`** — cargá, **Guardar** (Ctrl+S), activá el toggle arriba a la derecha
+4. Volvé a workflows → **+ Nuevo** → importá **`n8n/workflows/agente-marketing.json`** → Guardar → activar
+5. Repetí con **`agente-whatsapp.json`** → Guardar → activar
+6. Repetí con **`agente-leads-sheets.json`** → Guardar → activar
+7. Verificá que la URL del webhook del router sea exactamente:
    `https://brunosuerez.app.n8n.cloud/webhook/taller-libra-bus`
+
+### ¿Por qué no un solo import?
+
+La UI de n8n valida que el JSON sea un objeto con la forma `{name, nodes, connections, ...}`. Un array `[{...}, {...}]` rebota con 400 Bad Request. El archivo `ALL-IN-ONE.cli.json` sí es array (pensado para el CLI, que itera).
 
 ### ✅ Test de humo
 
@@ -158,6 +168,7 @@ Después creás **una OT real** (Nueva OT → llenar datos → guardar) y verifi
 
 | Síntoma | Causa probable | Fix |
 |---|---|---|
+| **Import devuelve 400 Bad Request** | Estás importando `ALL-IN-ONE.cli.json` (array) por UI | Importá los 4 archivos individuales uno por uno |
 | Bus offline | Workflow desactivado o URL mal | Activar toggle + comparar URL con `BUS_URL` |
 | WhatsApp devuelve 400 | Plantilla no aprobada o número mal | Esperar aprobación / verificar `5492974773784` sin `+` |
 | Instagram no publica | Foto en Drive o Cuenta no-Business | Subir a Supabase Storage + pasar a Business |

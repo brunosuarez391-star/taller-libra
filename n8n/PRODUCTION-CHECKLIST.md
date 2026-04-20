@@ -6,7 +6,8 @@ Marcá cada ítem a medida que lo completás. Seguí el orden: cada sección des
 
 ## 🎯 Fase 1: Bus de eventos (el cerebro funciona)
 
-- [ ] Importé `n8n/workflows/ALL-IN-ONE.json` en https://brunosuerez.app.n8n.cloud/
+- [ ] Importé los 4 archivos **uno por uno** en https://brunosuerez.app.n8n.cloud/ (UI no acepta array):
+      `taller-libra-bus.json` · `agente-marketing.json` · `agente-whatsapp.json` · `agente-leads-sheets.json`
 - [ ] Los 4 workflows están con el toggle en ON (verde)
 - [ ] La URL del webhook del router es `https://brunosuerez.app.n8n.cloud/webhook/taller-libra-bus`
 - [ ] Panel Cerebro (`/cerebro`) muestra **Bus n8n: online** (verde)

@@ -148,11 +148,14 @@ n8n/
 ├── README.md           ← este archivo
 ├── EVENTS.md           ← catálogo completo de eventos y payloads
 ├── VALIDATION.md       ← pruebas locales y hallazgos antes de subir a producción
+├── SETUP-QUICKSTART.md ← guía paso a paso para arrancar en 30 min (empezá acá)
+├── PRODUCTION-CHECKLIST.md ← checklist para ir marcando el progreso
 ├── workflows/
-│   ├── taller-libra-bus.json           ← router principal (Switch + 10 ramas)
-│   ├── agente-marketing.json           ← publicar FB + IG + WhatsApp
-│   ├── agente-whatsapp.json            ← plantillas WhatsApp a cliente
-│   └── agente-leads-sheets.json        ← notificar admin + Google Sheets
+│   ├── taller-libra-bus.json           ← router (importar por UI)
+│   ├── agente-marketing.json           ← publicar FB + IG + WhatsApp (UI)
+│   ├── agente-whatsapp.json            ← plantillas WhatsApp (UI)
+│   ├── agente-leads-sheets.json        ← notificar admin + Sheets (UI)
+│   └── ALL-IN-ONE.cli.json             ← ⚠️ SOLO CLI (n8n import:workflow). UI lo rechaza con 400 porque es array.
 └── setup/
     └── credentials.md  ← guía detallada de credenciales
 ```
