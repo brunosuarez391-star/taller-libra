@@ -6,12 +6,12 @@ export default function Dashboard({ ordenes, vehiculos }) {
     { label: 'Unidades en flota', value: vehiculos.length, color: 'bg-[#1F3864]' },
     { label: 'OTs activas', value: otActivas.length, color: 'bg-[#2E75B6]' },
     { label: 'Finalizadas', value: otFinalizadas.length, color: 'bg-green-600' },
-    { label: 'Total OTs', value: ordenes.length, color: 'bg-slate-600' },
+    { label: 'Total OTs', value: ordenes.length, color: 'bg-slate-600 dark:bg-slate-700' },
   ]
 
   return (
     <div>
-      <h2 className="text-2xl font-bold text-[#1F3864] mb-6">Dashboard — Libra Fleet</h2>
+      <h2 className="text-2xl font-bold text-[#1F3864] dark:text-blue-300 mb-6">Dashboard — Libra Fleet</h2>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
         {stats.map(({ label, value, color }) => (
@@ -22,15 +22,15 @@ export default function Dashboard({ ordenes, vehiculos }) {
         ))}
       </div>
 
-      <div className="bg-white rounded-xl shadow p-5">
-        <h3 className="text-lg font-bold text-[#1F3864] mb-4">Ordenes de Trabajo Recientes</h3>
+      <div className="bg-white dark:bg-slate-800 rounded-xl shadow p-5 border border-transparent dark:border-slate-700">
+        <h3 className="text-lg font-bold text-[#1F3864] dark:text-blue-300 mb-4">Ordenes de Trabajo Recientes</h3>
         {ordenes.length === 0 ? (
-          <p className="text-slate-400 text-center py-8">No hay OTs todavía. Creá una desde "+ Nueva OT"</p>
+          <p className="text-slate-400 dark:text-slate-500 text-center py-8">No hay OTs todavía. Creá una desde "+ Nueva OT"</p>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="bg-[#D6E4F0] text-[#1F3864]">
+                <tr className="bg-[#D6E4F0] dark:bg-slate-700 text-[#1F3864] dark:text-blue-200">
                   <th className="px-3 py-2 text-left">OT</th>
                   <th className="px-3 py-2 text-left">Unidad</th>
                   <th className="px-3 py-2 text-left">Cliente</th>
@@ -41,17 +41,17 @@ export default function Dashboard({ ordenes, vehiculos }) {
               </thead>
               <tbody>
                 {ordenes.slice(0, 10).map((ot) => (
-                  <tr key={ot.id} className="border-b border-slate-100 hover:bg-slate-50">
+                  <tr key={ot.id} className="border-b border-slate-100 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/50 text-slate-700 dark:text-slate-200">
                     <td className="px-3 py-2 font-mono font-bold">{ot.ot_numero}</td>
                     <td className="px-3 py-2">{ot.vehiculos?.codigo} {ot.vehiculos?.modelo}</td>
                     <td className="px-3 py-2">{ot.clientes?.nombre}</td>
                     <td className="px-3 py-2">{ot.servicio_nombre}</td>
                     <td className="px-3 py-2">
                       <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${
-                        ot.estado === 'Ingresado' ? 'bg-yellow-100 text-yellow-800' :
-                        ot.estado === 'En proceso' ? 'bg-blue-100 text-blue-800' :
-                        ot.estado === 'Finalizado' ? 'bg-green-100 text-green-800' :
-                        'bg-slate-100 text-slate-800'
+                        ot.estado === 'Ingresado' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/50 dark:text-yellow-300' :
+                        ot.estado === 'En proceso' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-300' :
+                        ot.estado === 'Finalizado' ? 'bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300' :
+                        'bg-slate-100 text-slate-800 dark:bg-slate-700 dark:text-slate-300'
                       }`}>{ot.estado}</span>
                     </td>
                     <td className="px-3 py-2 font-mono">{ot.km_ingreso?.toLocaleString()}</td>
