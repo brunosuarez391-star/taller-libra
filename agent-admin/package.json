@@ -1,0 +1,19 @@
+{
+  "name": "libra-fleet-claude-agent",
+  "version": "1.0.0",
+  "description": "Agente administrado de Claude para desarrollo asistido del proyecto Libra Fleet — Taller Libra Servicios",
+  "private": true,
+  "type": "module",
+  "main": "run.js",
+  "scripts": {
+    "setup": "node setup.js",
+    "start": "node run.js"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.88.0",
+    "dotenv": "^16.4.7"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}
