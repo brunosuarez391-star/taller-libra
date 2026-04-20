@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { getMecanicos, crearMecanico, actualizarMecanico, eliminarMecanico } from '../lib/api'
+import { crearMecanico, actualizarMecanico, eliminarMecanico } from '../lib/api'
 
 const ROLES = ['Jefe de Taller', 'Mecánico', 'Auxiliar', 'Electricista', 'Recepcionista', 'Administrativo']
 const ESPECIALIDADES = ['Motor pesado MB', 'Caja y diferencial', 'Eléctrico/Electrónica', 'Frenos y suspensión', 'Neumática', 'Carrocería', 'General']
@@ -8,13 +8,10 @@ const formatARS = (n) => '$' + (n || 0).toLocaleString('es-AR')
 
 const EMPTY = { nombre: '', rol: 'Mecánico', telefono: '', email: '', especialidad: 'General', tarifa_hora: '' }
 
-export default function Equipo({ ordenes }) {
-  const [mecanicos, setMecanicos] = useState(() => getMecanicos())
+export default function Equipo({ ordenes = [], mecanicos = [], onRefresh }) {
   const [form, setForm] = useState(EMPTY)
   const [editando, setEditando] = useState(null)
   const [guardando, setGuardando] = useState(false)
-
-  const refrescar = () => setMecanicos(getMecanicos())
 
   const guardar = async (e) => {
     e.preventDefault()
@@ -25,7 +22,9 @@ export default function Equipo({ ordenes }) {
       else await crearMecanico(form)
       setForm(EMPTY)
       setEditando(null)
-      refrescar()
+      onRefresh?.()
+    } catch (err) {
+      alert('Error: ' + err.message)
     } finally {
       setGuardando(false)
     }
@@ -41,13 +40,21 @@ export default function Equipo({ ordenes }) {
 
   const borrar = async (m) => {
     if (!confirm(`¿Eliminar a ${m.nombre} del equipo?`)) return
-    await eliminarMecanico(m.id)
-    refrescar()
+    try {
+      await eliminarMecanico(m.id)
+      onRefresh?.()
+    } catch (err) {
+      alert('Error: ' + err.message)
+    }
   }
 
   const toggleActivo = async (m) => {
-    await actualizarMecanico(m.id, { activo: !m.activo })
-    refrescar()
+    try {
+      await actualizarMecanico(m.id, { activo: !m.activo })
+      onRefresh?.()
+    } catch (err) {
+      alert('Error: ' + err.message)
+    }
   }
 
   const statsPorMecanico = useMemo(() => {

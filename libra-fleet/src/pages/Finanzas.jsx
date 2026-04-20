@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { getGastos, registrarGasto, eliminarGasto } from '../lib/api'
+import { registrarGasto, eliminarGasto } from '../lib/api'
 import { PRECIOS } from '../lib/data'
 
 const CATEGORIAS = ['Insumos', 'Repuestos', 'Combustible', 'Servicios', 'Sueldos', 'Impuestos', 'Alquiler', 'Otros']
@@ -7,12 +7,11 @@ const METODOS = ['Efectivo', 'Transferencia', 'Cheque', 'Tarjeta', 'MercadoPago'
 
 function formatARS(n) { return '$' + (n || 0).toLocaleString('es-AR') }
 
-export default function Finanzas({ ordenes }) {
+export default function Finanzas({ ordenes, gastos = [], onRefresh }) {
   const [mes, setMes] = useState(() => {
     const d = new Date()
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
   })
-  const [gastos, setGastos] = useState(() => getGastos())
   const [nuevoGasto, setNuevoGasto] = useState({
     fecha: new Date().toISOString().slice(0, 10),
     categoria: 'Insumos',
@@ -21,21 +20,31 @@ export default function Finanzas({ ordenes }) {
     monto: '',
     metodo_pago: 'Transferencia',
   })
-
-  const refrescarGastos = () => setGastos(getGastos())
+  const [guardando, setGuardando] = useState(false)
 
   const guardar = async (e) => {
     e.preventDefault()
     if (!nuevoGasto.concepto || !nuevoGasto.monto) { alert('Concepto y monto son obligatorios'); return }
-    await registrarGasto(nuevoGasto)
-    setNuevoGasto({ ...nuevoGasto, concepto: '', monto: '' })
-    refrescarGastos()
+    setGuardando(true)
+    try {
+      await registrarGasto(nuevoGasto)
+      setNuevoGasto({ ...nuevoGasto, concepto: '', monto: '' })
+      onRefresh?.()
+    } catch (err) {
+      alert('Error al guardar: ' + err.message)
+    } finally {
+      setGuardando(false)
+    }
   }
 
   const borrar = async (id) => {
     if (!confirm('¿Eliminar gasto?')) return
-    await eliminarGasto(id)
-    refrescarGastos()
+    try {
+      await eliminarGasto(id)
+      onRefresh?.()
+    } catch (err) {
+      alert('Error: ' + err.message)
+    }
   }
 
   // Ingresos del mes derivados de OTs
@@ -177,7 +186,7 @@ export default function Finanzas({ ordenes }) {
             <select value={nuevoGasto.metodo_pago} onChange={e => setNuevoGasto({ ...nuevoGasto, metodo_pago: e.target.value })} className="w-full border border-slate-300 rounded-lg px-3 py-2">
               {METODOS.map(m => <option key={m}>{m}</option>)}
             </select>
-            <button type="submit" className="w-full bg-[#1F3864] text-white px-4 py-2 rounded-lg font-bold hover:bg-[#2E75B6]">Guardar gasto</button>
+            <button type="submit" disabled={guardando} className="w-full bg-[#1F3864] text-white px-4 py-2 rounded-lg font-bold hover:bg-[#2E75B6] disabled:opacity-50">{guardando ? 'Guardando...' : 'Guardar gasto'}</button>
           </form>
         </div>
 

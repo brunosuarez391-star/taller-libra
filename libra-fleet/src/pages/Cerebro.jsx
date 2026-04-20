@@ -1,5 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
-import { BUS_URL, getBusLog, limpiarBusLog, pingBus, getGastos, dispararEvento } from '../lib/api'
+import {
+  BUS_URL, getBusLog, limpiarBusLog, pingBus, dispararEvento,
+  tieneDatosLocalesParaMigrar, migrarLocalStorageASupabase,
+} from '../lib/api'
 import { PRECIOS } from '../lib/data'
 
 const AGENTES = [
@@ -60,13 +63,34 @@ const AGENTES = [
   },
 ]
 
-export default function Cerebro({ ordenes, vehiculos, clientes }) {
+export default function Cerebro({ ordenes, vehiculos, clientes, gastos = [], onRefresh }) {
   const [log, setLog] = useState(() => getBusLog())
   const [estadoBus, setEstadoBus] = useState('desconocido')
   const [pingando, setPingando] = useState(false)
   const [filtro, setFiltro] = useState('todos')
   const [testing, setTesting] = useState(null)
   const [testResults, setTestResults] = useState({})
+  const [tieneLocales, setTieneLocales] = useState(() => tieneDatosLocalesParaMigrar())
+  const [migrando, setMigrando] = useState(false)
+  const [reporteMigracion, setReporteMigracion] = useState(null)
+
+  const ejecutarMigracion = async () => {
+    if (!confirm('Esto va a subir los datos locales (gastos, inventario, equipo, agenda) a Supabase. Confirmá que ya corriste supabase-schema-v2.sql en el SQL Editor del dashboard. ¿Seguimos?')) return
+    setMigrando(true)
+    setReporteMigracion(null)
+    try {
+      const r = await migrarLocalStorageASupabase()
+      setReporteMigracion(r)
+      setTieneLocales(tieneDatosLocalesParaMigrar())
+      if (r.errores.length === 0) {
+        onRefresh?.()
+      }
+    } catch (err) {
+      setReporteMigracion({ errores: [{ tabla: 'general', error: err.message }] })
+    } finally {
+      setMigrando(false)
+    }
+  }
 
   const refrescarLog = () => setLog(getBusLog())
 
@@ -127,7 +151,7 @@ export default function Cerebro({ ordenes, vehiculos, clientes }) {
       const p = PRECIOS[`M.B. ${modelo}`] || PRECIOS['M.B. 1634']
       return s + (p?.total || 0)
     }, 0)
-    const gastosMes = getGastos().filter(g => (g.fecha || '').slice(0, 7) === mes).reduce((s, g) => s + g.monto, 0)
+    const gastosMes = gastos.filter(g => (g.fecha || '').slice(0, 7) === mes).reduce((s, g) => s + Number(g.monto || 0), 0)
     return {
       otsMes: otsMes.length,
       otsActivas: otsActivas.length,
@@ -137,12 +161,57 @@ export default function Cerebro({ ordenes, vehiculos, clientes }) {
       gastosMes,
       neto: facturacionMes - gastosMes,
     }
-  }, [ordenes, vehiculos, clientes])
+  }, [ordenes, vehiculos, clientes, gastos])
 
   const formatARS = (n) => '$' + (n || 0).toLocaleString('es-AR')
 
   return (
     <div>
+      {tieneLocales && (
+        <div className="bg-amber-50 border-l-4 border-amber-500 p-4 mb-6 rounded-r-lg">
+          <div className="flex items-start justify-between gap-3 flex-wrap">
+            <div className="flex-1 min-w-0">
+              <h3 className="font-bold text-amber-800">⚡ Migración pendiente: localStorage → Supabase</h3>
+              <p className="text-xs text-amber-700 mt-1">
+                Detectamos datos de gastos, inventario, equipo o agenda guardados localmente en este navegador.
+                Para habilitar uso multi-usuario, subilos a Supabase ahora.
+              </p>
+              <p className="text-xs text-amber-700 mt-1">
+                <strong>Paso previo:</strong> correr <code className="bg-amber-100 px-1 rounded">libra-fleet/supabase-schema-v2.sql</code> en el SQL Editor de Supabase.
+              </p>
+            </div>
+            <button onClick={ejecutarMigracion} disabled={migrando} className="bg-amber-600 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-amber-700 disabled:opacity-50 whitespace-nowrap">
+              {migrando ? 'Migrando...' : '🚀 Migrar ahora'}
+            </button>
+          </div>
+          {reporteMigracion && (
+            <div className="mt-3 text-xs bg-white rounded p-3 border border-amber-200">
+              <p className="font-bold text-[#1F3864] mb-1">Reporte:</p>
+              <ul className="space-y-0.5 text-slate-700">
+                <li>• Gastos migrados: {reporteMigracion.gastos}</li>
+                <li>• Insumos migrados: {reporteMigracion.insumos}</li>
+                <li>• Movimientos migrados: {reporteMigracion.movimientos}</li>
+                <li>• Mecánicos migrados: {reporteMigracion.mecanicos}</li>
+                <li>• Turnos migrados: {reporteMigracion.turnos}</li>
+              </ul>
+              {reporteMigracion.errores && reporteMigracion.errores.length > 0 ? (
+                <div className="mt-2 text-red-700">
+                  <p className="font-bold">❌ Errores:</p>
+                  <ul className="space-y-0.5">
+                    {reporteMigracion.errores.map((e, i) => (
+                      <li key={i}>• {e.tabla}: {e.error}</li>
+                    ))}
+                  </ul>
+                  <p className="text-[10px] mt-1 italic">Los datos locales NO se borraron. Podés reintentar.</p>
+                </div>
+              ) : (
+                <p className="mt-2 text-green-700 font-bold">✅ Migración exitosa. Datos locales limpiados.</p>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
       <div className="flex items-center justify-between flex-wrap gap-3 mb-6">
         <div>
           <h2 className="text-2xl font-bold text-[#1F3864]">🧠 Cerebro — Centro de Control</h2>

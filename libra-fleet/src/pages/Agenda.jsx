@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { getAgenda, crearTurno, actualizarTurno, eliminarTurno, getMecanicos } from '../lib/api'
+import { crearTurno, actualizarTurno, eliminarTurno } from '../lib/api'
 import { SERVICIOS } from '../lib/data'
 
 const ESTADOS = ['Programado', 'Confirmado', 'Enproceso', 'Completado', 'Cancelado']
@@ -7,28 +7,29 @@ const HORAS = ['08:00','08:30','09:00','09:30','10:00','10:30','11:00','11:30','
 
 const EMPTY = { fecha: '', hora: '09:00', cliente: '', telefono: '', vehiculo: '', servicio: 'Service 20.000 km', mecanico: '', notas: '' }
 
-export default function Agenda({ clientes, vehiculos }) {
+export default function Agenda({ clientes = [], vehiculos = [], mecanicos = [], turnos = [], onRefresh }) {
   const today = new Date().toISOString().slice(0, 10)
-  const [turnos, setTurnos] = useState(() => getAgenda())
   const [form, setForm] = useState({ ...EMPTY, fecha: today })
   const [filtroFecha, setFiltroFecha] = useState(today)
   const [editando, setEditando] = useState(null)
   const [vistaSemana, setVistaSemana] = useState(false)
-  const mecanicos = useMemo(() => getMecanicos(), [])
-
-  const refrescar = () => setTurnos(getAgenda())
+  const [guardando, setGuardando] = useState(false)
 
   const guardar = async (e) => {
     e.preventDefault()
     if (!form.fecha || !form.cliente.trim()) { alert('Fecha y cliente son obligatorios'); return }
-    if (editando) {
-      await actualizarTurno(editando, form)
-    } else {
-      await crearTurno(form)
+    setGuardando(true)
+    try {
+      if (editando) await actualizarTurno(editando, form)
+      else await crearTurno(form)
+      setForm({ ...EMPTY, fecha: today })
+      setEditando(null)
+      onRefresh?.()
+    } catch (err) {
+      alert('Error: ' + err.message)
+    } finally {
+      setGuardando(false)
     }
-    setForm({ ...EMPTY, fecha: today })
-    setEditando(null)
-    refrescar()
   }
 
   const empezarEdicion = (t) => {
@@ -40,14 +41,22 @@ export default function Agenda({ clientes, vehiculos }) {
   const cancelar = () => { setEditando(null); setForm({ ...EMPTY, fecha: today }) }
 
   const cambiarEstado = async (t, estado) => {
-    await actualizarTurno(t.id, { estado })
-    refrescar()
+    try {
+      await actualizarTurno(t.id, { estado })
+      onRefresh?.()
+    } catch (err) {
+      alert('Error: ' + err.message)
+    }
   }
 
   const borrar = async (t) => {
     if (!confirm(`¿Cancelar turno de ${t.cliente}?`)) return
-    await eliminarTurno(t.id)
-    refrescar()
+    try {
+      await eliminarTurno(t.id)
+      onRefresh?.()
+    } catch (err) {
+      alert('Error: ' + err.message)
+    }
   }
 
   // Días de la semana del día filtrado
@@ -145,8 +154,8 @@ export default function Agenda({ clientes, vehiculos }) {
             </select>
             <textarea value={form.notas} onChange={e => setForm({ ...form, notas: e.target.value })} placeholder="Notas / observaciones" rows={2} className="w-full border border-slate-300 rounded-lg px-3 py-2" />
             <div className="flex gap-2 pt-2">
-              <button type="submit" className="flex-1 bg-[#1F3864] text-white px-4 py-2 rounded-lg font-bold hover:bg-[#2E75B6]">
-                {editando ? 'Actualizar' : 'Programar'}
+              <button type="submit" disabled={guardando} className="flex-1 bg-[#1F3864] text-white px-4 py-2 rounded-lg font-bold hover:bg-[#2E75B6] disabled:opacity-50">
+                {guardando ? 'Guardando...' : editando ? 'Actualizar' : 'Programar'}
               </button>
               {editando && <button type="button" onClick={cancelar} className="bg-slate-200 text-slate-700 px-4 py-2 rounded-lg font-bold hover:bg-slate-300">Cancelar</button>}
             </div>

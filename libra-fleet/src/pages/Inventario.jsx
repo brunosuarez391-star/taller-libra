@@ -1,7 +1,6 @@
 import { useMemo, useState } from 'react'
 import {
-  getInventario, crearInsumo, actualizarInsumo, eliminarInsumo,
-  ajustarStock, getMovimientosInventario,
+  crearInsumo, actualizarInsumo, eliminarInsumo, ajustarStock,
 } from '../lib/api'
 
 const CATEGORIAS = ['Filtros', 'Aceites', 'Repuestos', 'Eléctrico', 'Neumáticos', 'Consumibles', 'Herramientas', 'Otros']
@@ -9,9 +8,8 @@ const UNIDADES = ['unidad', 'litro', 'kg', 'metro', 'caja', 'juego']
 
 const formatARS = (n) => '$' + (n || 0).toLocaleString('es-AR')
 
-export default function Inventario() {
-  const [items, setItems] = useState(() => getInventario())
-  const [movimientos, setMovimientos] = useState(() => getMovimientosInventario())
+export default function Inventario({ insumos = [], movimientos = [], onRefresh }) {
+  const items = insumos
   const [editando, setEditando] = useState(null)
   const [filtroCat, setFiltroCat] = useState('todas')
   const [busqueda, setBusqueda] = useState('')
@@ -19,27 +17,27 @@ export default function Inventario() {
   const [ajuste, setAjuste] = useState(null)
   const [deltaInput, setDeltaInput] = useState('')
   const [motivoInput, setMotivoInput] = useState('')
+  const [guardando, setGuardando] = useState(false)
   const [form, setForm] = useState({
     codigo: '', descripcion: '', categoria: 'Repuestos', unidad: 'unidad',
     stock: '', stock_minimo: '', precio_unit: '', proveedor: '', ubicacion: '',
   })
 
-  const refrescar = () => {
-    setItems(getInventario())
-    setMovimientos(getMovimientosInventario())
-  }
-
   const guardar = async (e) => {
     e.preventDefault()
     if (!form.descripcion.trim()) { alert('Descripción es obligatoria'); return }
-    if (editando) {
-      await actualizarInsumo(editando, form)
-    } else {
-      await crearInsumo(form)
+    setGuardando(true)
+    try {
+      if (editando) await actualizarInsumo(editando, form)
+      else await crearInsumo(form)
+      setForm({ codigo: '', descripcion: '', categoria: 'Repuestos', unidad: 'unidad', stock: '', stock_minimo: '', precio_unit: '', proveedor: '', ubicacion: '' })
+      setEditando(null)
+      onRefresh?.()
+    } catch (err) {
+      alert('Error: ' + err.message)
+    } finally {
+      setGuardando(false)
     }
-    setForm({ codigo: '', descripcion: '', categoria: 'Repuestos', unidad: 'unidad', stock: '', stock_minimo: '', precio_unit: '', proveedor: '', ubicacion: '' })
-    setEditando(null)
-    refrescar()
   }
 
   const empezarEdicion = (item) => {
@@ -55,8 +53,12 @@ export default function Inventario() {
 
   const borrar = async (item) => {
     if (!confirm(`¿Eliminar ${item.descripcion}?`)) return
-    await eliminarInsumo(item.id)
-    refrescar()
+    try {
+      await eliminarInsumo(item.id)
+      onRefresh?.()
+    } catch (err) {
+      alert('Error: ' + err.message)
+    }
   }
 
   const abrirAjuste = (item) => {
@@ -68,9 +70,13 @@ export default function Inventario() {
   const confirmarAjuste = async () => {
     const delta = Number(deltaInput)
     if (!delta) { alert('Ingresá una cantidad'); return }
-    await ajustarStock(ajuste.id, delta, motivoInput)
-    setAjuste(null)
-    refrescar()
+    try {
+      await ajustarStock(ajuste.id, delta, motivoInput)
+      setAjuste(null)
+      onRefresh?.()
+    } catch (err) {
+      alert('Error: ' + err.message)
+    }
   }
 
   const filtrados = useMemo(() => {
@@ -153,8 +159,8 @@ export default function Inventario() {
             <input value={form.proveedor} onChange={e => setForm({ ...form, proveedor: e.target.value })} placeholder="Proveedor" className="w-full border border-slate-300 rounded-lg px-3 py-2" />
             <input value={form.ubicacion} onChange={e => setForm({ ...form, ubicacion: e.target.value })} placeholder="Ubicación en taller" className="w-full border border-slate-300 rounded-lg px-3 py-2" />
             <div className="flex gap-2 pt-2">
-              <button type="submit" className="flex-1 bg-[#1F3864] text-white px-4 py-2 rounded-lg font-bold hover:bg-[#2E75B6]">
-                {editando ? 'Actualizar' : 'Guardar'}
+              <button type="submit" disabled={guardando} className="flex-1 bg-[#1F3864] text-white px-4 py-2 rounded-lg font-bold hover:bg-[#2E75B6] disabled:opacity-50">
+                {guardando ? 'Guardando...' : editando ? 'Actualizar' : 'Guardar'}
               </button>
               {editando && <button type="button" onClick={cancelar} className="bg-slate-200 text-slate-700 px-4 py-2 rounded-lg font-bold hover:bg-slate-300">Cancelar</button>}
             </div>

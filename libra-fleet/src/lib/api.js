@@ -122,7 +122,6 @@ export async function getOrdenesPorCodigo(codigo) {
 export async function crearOrden(orden) {
   const { data, error } = await supabase.from('ordenes_trabajo').insert(orden).select('*, vehiculos(codigo, modelo, tipo, categoria), clientes(nombre, telefono)').single()
   if (error) throw error
-  // Disparar evento al Bus según categoría del vehículo
   const esPesada = data.vehiculos?.categoria === 'Camión Pesado' || data.vehiculos?.categoria === 'Tractor'
   const evento = esPesada ? 'flota_recepcion' : 'flota_liviana_recepcion'
   dispararEvento(evento, {
@@ -143,7 +142,6 @@ export async function crearOrden(orden) {
 export async function actualizarEstadoOT(otId, estado) {
   const { data, error } = await supabase.from('ordenes_trabajo').update({ estado, updated_at: new Date().toISOString() }).eq('id', otId).select('*, vehiculos(codigo, modelo, tipo), clientes(nombre, telefono)').single()
   if (error) throw error
-  // Si se marca como Finalizada, disparar ot_finalizada al Bus
   if (estado === 'Finalizado') {
     dispararEvento('ot_finalizada', {
       ot_numero: data.ot_numero,
@@ -227,116 +225,104 @@ export async function captarLead({ nombre, telefono, fuente, mensaje }) {
   return dispararEvento('lead_captado', { nombre, telefono, fuente, mensaje }, 'marketing')
 }
 
-// ============ FINANZAS (gastos locales) ============
-const GASTOS_KEY = 'libra_gastos'
-
-export function getGastos() {
-  try { return JSON.parse(localStorage.getItem(GASTOS_KEY) || '[]') } catch { return [] }
+// ============ FINANZAS (gastos en Supabase) ============
+export async function getGastos() {
+  const { data, error } = await supabase.from('gastos').select('*').order('fecha', { ascending: false })
+  if (error) throw error
+  return data || []
 }
 
 export async function registrarGasto({ fecha, categoria, proveedor, concepto, monto, metodo_pago }) {
-  const gasto = {
-    id: crypto.randomUUID(),
+  const payload = {
     fecha: fecha || new Date().toISOString().slice(0, 10),
-    categoria,
-    proveedor,
+    categoria: categoria || 'Otros',
+    proveedor: proveedor || null,
     concepto,
     monto: Number(monto) || 0,
     metodo_pago: metodo_pago || 'Efectivo',
-    created_at: new Date().toISOString(),
   }
-  const prev = getGastos()
-  localStorage.setItem(GASTOS_KEY, JSON.stringify([gasto, ...prev]))
-  dispararEvento('gasto_registrado', gasto, 'finanzas')
-  return gasto
+  const { data, error } = await supabase.from('gastos').insert(payload).select().single()
+  if (error) throw error
+  dispararEvento('gasto_registrado', data, 'finanzas')
+  return data
 }
 
 export async function eliminarGasto(id) {
-  const prev = getGastos()
-  localStorage.setItem(GASTOS_KEY, JSON.stringify(prev.filter(g => g.id !== id)))
+  const { error } = await supabase.from('gastos').delete().eq('id', id)
+  if (error) throw error
   dispararEvento('gasto_eliminado', { id }, 'finanzas')
 }
 
-// ============ INVENTARIO (stock local) ============
-const INVENTARIO_KEY = 'libra_inventario'
-const MOV_INVENTARIO_KEY = 'libra_inv_movimientos'
-
-export function getInventario() {
-  try { return JSON.parse(localStorage.getItem(INVENTARIO_KEY) || '[]') } catch { return [] }
+// ============ INVENTARIO (insumos en Supabase) ============
+export async function getInventario() {
+  const { data, error } = await supabase.from('insumos').select('*').order('codigo')
+  if (error) throw error
+  return data || []
 }
 
-export function getMovimientosInventario() {
-  try { return JSON.parse(localStorage.getItem(MOV_INVENTARIO_KEY) || '[]') } catch { return [] }
-}
-
-function guardarInventario(items) {
-  localStorage.setItem(INVENTARIO_KEY, JSON.stringify(items))
-}
-
-function registrarMovimiento(mov) {
-  const prev = getMovimientosInventario()
-  localStorage.setItem(MOV_INVENTARIO_KEY, JSON.stringify([mov, ...prev].slice(0, 200)))
+export async function getMovimientosInventario() {
+  const { data, error } = await supabase.from('movimientos_inventario').select('*').order('ts', { ascending: false }).limit(200)
+  if (error) throw error
+  return data || []
 }
 
 export async function crearInsumo({ codigo, descripcion, categoria, unidad, stock, stock_minimo, precio_unit, proveedor, ubicacion }) {
-  const items = getInventario()
-  const item = {
-    id: crypto.randomUUID(),
-    codigo: codigo || 'INV-' + (items.length + 1).toString().padStart(3, '0'),
+  const payload = {
+    codigo: codigo || null,
     descripcion,
     categoria: categoria || 'Repuestos',
     unidad: unidad || 'unidad',
     stock: Number(stock) || 0,
     stock_minimo: Number(stock_minimo) || 0,
     precio_unit: Number(precio_unit) || 0,
-    proveedor: proveedor || '',
-    ubicacion: ubicacion || '',
-    created_at: new Date().toISOString(),
+    proveedor: proveedor || null,
+    ubicacion: ubicacion || null,
   }
-  guardarInventario([item, ...items])
-  dispararEvento('insumo_creado', { codigo: item.codigo, descripcion: item.descripcion }, 'inventario')
-  return item
+  if (!payload.codigo) {
+    const { count } = await supabase.from('insumos').select('*', { count: 'exact', head: true })
+    payload.codigo = 'INV-' + String((count || 0) + 1).padStart(3, '0')
+  }
+  const { data, error } = await supabase.from('insumos').insert(payload).select().single()
+  if (error) throw error
+  dispararEvento('insumo_creado', { codigo: data.codigo, descripcion: data.descripcion }, 'inventario')
+  return data
 }
 
 export async function actualizarInsumo(id, campos) {
-  const items = getInventario()
-  const idx = items.findIndex(i => i.id === id)
-  if (idx === -1) throw new Error('Insumo no encontrado')
-  items[idx] = { ...items[idx], ...campos }
-  guardarInventario(items)
-  return items[idx]
+  const { data, error } = await supabase.from('insumos').update(campos).eq('id', id).select().single()
+  if (error) throw error
+  return data
 }
 
 export async function eliminarInsumo(id) {
-  const items = getInventario().filter(i => i.id !== id)
-  guardarInventario(items)
+  const { error } = await supabase.from('insumos').delete().eq('id', id)
+  if (error) throw error
 }
 
 export async function ajustarStock(id, delta, motivo) {
-  const items = getInventario()
-  const idx = items.findIndex(i => i.id === id)
-  if (idx === -1) throw new Error('Insumo no encontrado')
-  const item = items[idx]
+  const { data: item, error: e1 } = await supabase.from('insumos').select('*').eq('id', id).single()
+  if (e1) throw e1
   const stockAnterior = item.stock
-  item.stock = Math.max(0, stockAnterior + Number(delta))
-  items[idx] = item
-  guardarInventario(items)
-  registrarMovimiento({
-    id: crypto.randomUUID(),
-    ts: new Date().toISOString(),
+  const stockNuevo = Math.max(0, stockAnterior + Number(delta))
+
+  const { data: updated, error: e2 } = await supabase.from('insumos').update({ stock: stockNuevo }).eq('id', id).select().single()
+  if (e2) throw e2
+
+  await supabase.from('movimientos_inventario').insert({
     insumo_id: id,
     codigo: item.codigo,
     descripcion: item.descripcion,
     delta: Number(delta),
     stock_anterior: stockAnterior,
-    stock_nuevo: item.stock,
+    stock_nuevo: stockNuevo,
     motivo: motivo || (delta > 0 ? 'Ingreso' : 'Egreso'),
   })
-  if (item.stock_minimo > 0 && item.stock <= item.stock_minimo) {
+
+  if (item.stock_minimo > 0 && stockNuevo <= item.stock_minimo) {
     dispararEvento('stock_bajo', {
       codigo: item.codigo,
       descripcion: item.descripcion,
-      stock_actual: item.stock,
+      stock_actual: stockNuevo,
       stock_minimo: item.stock_minimo,
       proveedor: item.proveedor,
     }, 'inventario')
@@ -344,124 +330,221 @@ export async function ajustarStock(id, delta, motivo) {
   dispararEvento('stock_ajustado', {
     codigo: item.codigo,
     delta: Number(delta),
-    stock_nuevo: item.stock,
+    stock_nuevo: stockNuevo,
     motivo: motivo || '',
   }, 'inventario')
-  return item
+  return updated
 }
 
-// ============ EQUIPO (mecánicos locales) ============
-const MECANICOS_KEY = 'libra_mecanicos'
-
-export function getMecanicos() {
-  try {
-    const raw = localStorage.getItem(MECANICOS_KEY)
-    if (raw) return JSON.parse(raw)
-  } catch {
-    // fallback below
-  }
-  // seed: Bruno Suarez por defecto
-  const seed = [{
-    id: crypto.randomUUID(),
-    nombre: 'Bruno Suarez',
-    rol: 'Jefe de Taller',
-    telefono: '2974773784',
-    email: 'bruno@librapatagonia.com',
-    especialidad: 'Motor pesado MB',
-    tarifa_hora: 100000,
-    activo: true,
-    created_at: new Date().toISOString(),
-  }]
-  localStorage.setItem(MECANICOS_KEY, JSON.stringify(seed))
-  return seed
+// ============ EQUIPO (mecánicos en Supabase) ============
+export async function getMecanicos() {
+  const { data, error } = await supabase.from('mecanicos').select('*').order('created_at', { ascending: true })
+  if (error) throw error
+  return data || []
 }
 
 export async function crearMecanico(m) {
-  const prev = getMecanicos()
-  const mec = {
-    id: crypto.randomUUID(),
+  const payload = {
     nombre: m.nombre,
     rol: m.rol || 'Mecánico',
-    telefono: m.telefono || '',
-    email: m.email || '',
-    especialidad: m.especialidad || '',
+    telefono: m.telefono || null,
+    email: m.email || null,
+    especialidad: m.especialidad || 'General',
     tarifa_hora: Number(m.tarifa_hora) || 0,
     activo: true,
-    created_at: new Date().toISOString(),
   }
-  localStorage.setItem(MECANICOS_KEY, JSON.stringify([mec, ...prev]))
-  dispararEvento('mecanico_creado', { nombre: mec.nombre, rol: mec.rol, telefono: mec.telefono }, 'equipo')
-  return mec
+  const { data, error } = await supabase.from('mecanicos').insert(payload).select().single()
+  if (error) throw error
+  dispararEvento('mecanico_creado', { nombre: data.nombre, rol: data.rol, telefono: data.telefono }, 'equipo')
+  return data
 }
 
 export async function actualizarMecanico(id, campos) {
-  const items = getMecanicos()
-  const idx = items.findIndex(i => i.id === id)
-  if (idx === -1) throw new Error('Mecánico no encontrado')
-  items[idx] = { ...items[idx], ...campos }
-  localStorage.setItem(MECANICOS_KEY, JSON.stringify(items))
-  return items[idx]
+  const { data, error } = await supabase.from('mecanicos').update(campos).eq('id', id).select().single()
+  if (error) throw error
+  return data
 }
 
 export async function eliminarMecanico(id) {
-  const items = getMecanicos().filter(i => i.id !== id)
-  localStorage.setItem(MECANICOS_KEY, JSON.stringify(items))
+  const { error } = await supabase.from('mecanicos').delete().eq('id', id)
+  if (error) throw error
 }
 
-// ============ AGENDA (turnos locales) ============
-const AGENDA_KEY = 'libra_agenda'
-
-export function getAgenda() {
-  try { return JSON.parse(localStorage.getItem(AGENDA_KEY) || '[]') } catch { return [] }
+// ============ AGENDA (turnos en Supabase) ============
+export async function getAgenda() {
+  const { data, error } = await supabase.from('turnos').select('*').order('fecha', { ascending: false }).order('hora')
+  if (error) throw error
+  return data || []
 }
 
 export async function crearTurno({ fecha, hora, cliente, telefono, vehiculo, servicio, mecanico, notas }) {
-  const prev = getAgenda()
-  const turno = {
-    id: crypto.randomUUID(),
+  const payload = {
     fecha,
     hora: hora || '09:00',
     cliente,
-    telefono: telefono || '',
-    vehiculo: vehiculo || '',
+    telefono: telefono || null,
+    vehiculo: vehiculo || null,
     servicio: servicio || 'Service',
-    mecanico: mecanico || '',
-    notas: notas || '',
+    mecanico: mecanico || null,
+    notas: notas || null,
     estado: 'Programado',
-    created_at: new Date().toISOString(),
   }
-  localStorage.setItem(AGENDA_KEY, JSON.stringify([turno, ...prev]))
+  const { data, error } = await supabase.from('turnos').insert(payload).select().single()
+  if (error) throw error
   dispararEvento('turno_creado', {
-    fecha: turno.fecha,
-    hora: turno.hora,
-    cliente: turno.cliente,
-    telefono: turno.telefono,
-    vehiculo: turno.vehiculo,
-    servicio: turno.servicio,
-    mecanico: turno.mecanico,
+    fecha: data.fecha,
+    hora: data.hora,
+    cliente: data.cliente,
+    telefono: data.telefono,
+    vehiculo: data.vehiculo,
+    servicio: data.servicio,
+    mecanico: data.mecanico,
   }, 'agenda')
-  return turno
+  return data
 }
 
 export async function actualizarTurno(id, campos) {
-  const items = getAgenda()
-  const idx = items.findIndex(t => t.id === id)
-  if (idx === -1) throw new Error('Turno no encontrado')
-  items[idx] = { ...items[idx], ...campos }
-  localStorage.setItem(AGENDA_KEY, JSON.stringify(items))
+  const { data, error } = await supabase.from('turnos').update(campos).eq('id', id).select().single()
+  if (error) throw error
   if (campos.estado) {
     dispararEvento('turno_' + campos.estado.toLowerCase(), {
       id,
-      cliente: items[idx].cliente,
-      fecha: items[idx].fecha,
-      hora: items[idx].hora,
+      cliente: data.cliente,
+      fecha: data.fecha,
+      hora: data.hora,
     }, 'agenda')
   }
-  return items[idx]
+  return data
 }
 
 export async function eliminarTurno(id) {
-  const items = getAgenda().filter(t => t.id !== id)
-  localStorage.setItem(AGENDA_KEY, JSON.stringify(items))
+  const { error } = await supabase.from('turnos').delete().eq('id', id)
+  if (error) throw error
   dispararEvento('turno_cancelado', { id }, 'agenda')
+}
+
+// ============ MIGRACIÓN (localStorage → Supabase) ============
+// Se corre una sola vez desde el panel Cerebro después de aplicar supabase-schema-v2.sql.
+// Sube los datos locales y limpia localStorage si todo sale OK.
+export function tieneDatosLocalesParaMigrar() {
+  const keys = ['libra_gastos', 'libra_inventario', 'libra_inv_movimientos', 'libra_mecanicos', 'libra_agenda']
+  return keys.some(k => {
+    try {
+      const v = JSON.parse(localStorage.getItem(k) || '[]')
+      return Array.isArray(v) && v.length > 0
+    } catch { return false }
+  })
+}
+
+export async function migrarLocalStorageASupabase() {
+  const report = { gastos: 0, insumos: 0, mecanicos: 0, turnos: 0, movimientos: 0, errores: [] }
+  const safe = (key) => { try { return JSON.parse(localStorage.getItem(key) || '[]') } catch { return [] } }
+
+  const gastosLS = safe('libra_gastos')
+  if (gastosLS.length > 0) {
+    const rows = gastosLS.map(g => ({
+      fecha: g.fecha,
+      categoria: g.categoria || 'Otros',
+      proveedor: g.proveedor || null,
+      concepto: g.concepto,
+      monto: Number(g.monto) || 0,
+      metodo_pago: g.metodo_pago || 'Efectivo',
+    }))
+    const { error } = await supabase.from('gastos').insert(rows)
+    if (error) report.errores.push({ tabla: 'gastos', error: error.message })
+    else report.gastos = rows.length
+  }
+
+  const insumosLS = safe('libra_inventario')
+  const codigoToId = {}
+  if (insumosLS.length > 0) {
+    const rows = insumosLS.map(i => ({
+      codigo: i.codigo,
+      descripcion: i.descripcion,
+      categoria: i.categoria || 'Repuestos',
+      unidad: i.unidad || 'unidad',
+      stock: Number(i.stock) || 0,
+      stock_minimo: Number(i.stock_minimo) || 0,
+      precio_unit: Number(i.precio_unit) || 0,
+      proveedor: i.proveedor || null,
+      ubicacion: i.ubicacion || null,
+    }))
+    const { data, error } = await supabase.from('insumos').insert(rows).select('id, codigo')
+    if (error) report.errores.push({ tabla: 'insumos', error: error.message })
+    else {
+      report.insumos = data.length
+      data.forEach(d => { codigoToId[d.codigo] = d.id })
+    }
+  }
+
+  const movsLS = safe('libra_inv_movimientos')
+  if (movsLS.length > 0 && Object.keys(codigoToId).length > 0) {
+    const rows = movsLS
+      .map(m => ({
+        insumo_id: codigoToId[m.codigo] || null,
+        codigo: m.codigo,
+        descripcion: m.descripcion,
+        delta: Number(m.delta) || 0,
+        stock_anterior: m.stock_anterior,
+        stock_nuevo: m.stock_nuevo,
+        motivo: m.motivo || null,
+        ts: m.ts,
+      }))
+      .filter(r => r.insumo_id)
+    if (rows.length > 0) {
+      const { error } = await supabase.from('movimientos_inventario').insert(rows)
+      if (error) report.errores.push({ tabla: 'movimientos', error: error.message })
+      else report.movimientos = rows.length
+    }
+  }
+
+  const mecanicosLS = safe('libra_mecanicos')
+  if (mecanicosLS.length > 0) {
+    const existentes = await supabase.from('mecanicos').select('nombre')
+    const existentesSet = new Set((existentes.data || []).map(m => m.nombre))
+    const rows = mecanicosLS
+      .filter(m => !existentesSet.has(m.nombre))
+      .map(m => ({
+        nombre: m.nombre,
+        rol: m.rol || 'Mecánico',
+        telefono: m.telefono || null,
+        email: m.email || null,
+        especialidad: m.especialidad || 'General',
+        tarifa_hora: Number(m.tarifa_hora) || 0,
+        activo: m.activo !== false,
+      }))
+    if (rows.length > 0) {
+      const { error } = await supabase.from('mecanicos').insert(rows)
+      if (error) report.errores.push({ tabla: 'mecanicos', error: error.message })
+      else report.mecanicos = rows.length
+    }
+  }
+
+  const turnosLS = safe('libra_agenda')
+  if (turnosLS.length > 0) {
+    const rows = turnosLS.map(t => ({
+      fecha: t.fecha,
+      hora: t.hora || '09:00',
+      cliente: t.cliente,
+      telefono: t.telefono || null,
+      vehiculo: t.vehiculo || null,
+      servicio: t.servicio || 'Service',
+      mecanico: t.mecanico || null,
+      notas: t.notas || null,
+      estado: t.estado || 'Programado',
+    }))
+    const { error } = await supabase.from('turnos').insert(rows)
+    if (error) report.errores.push({ tabla: 'turnos', error: error.message })
+    else report.turnos = rows.length
+  }
+
+  if (report.errores.length === 0) {
+    localStorage.removeItem('libra_gastos')
+    localStorage.removeItem('libra_inventario')
+    localStorage.removeItem('libra_inv_movimientos')
+    localStorage.removeItem('libra_mecanicos')
+    localStorage.removeItem('libra_agenda')
+  }
+
+  return report
 }
