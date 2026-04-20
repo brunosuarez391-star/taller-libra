@@ -5,7 +5,8 @@
       "parameters": {
         "httpMethod": "POST",
         "path": "taller-libra-marketing",
-        "responseMode": "responseNode",
+        "responseMode": "onReceived",
+        "responseData": "{\"status\":\"ok\",\"evento\":\"marketing_publicar\",\"modo\":\"fire-and-forget\"}",
         "options": {}
       },
       "id": "wh-marketing",
@@ -14,18 +15,19 @@
       "typeVersion": 2,
       "position": [200, 500],
       "webhookId": "taller-libra-marketing",
-      "notes": "Alternativa: llamar este workflow desde el router principal en lugar de exponer un webhook propio."
+      "notes": "Responde inmediato (fire-and-forget). Las publicaciones FB/IG/WA corren async. Si algún HTTP falla, se ve en los logs de n8n pero no afecta la respuesta al cliente."
     },
     {
       "parameters": {
         "assignments": {
           "assignments": [
-            { "id": "d1", "name": "plataformas", "value": "={{$json.body.datos.plataformas}}", "type": "array" },
+            { "id": "d1", "name": "plataformas_str", "value": "={{ ($json.body.datos.plataformas || []).join(',') }}", "type": "string" },
             { "id": "d2", "name": "titulo", "value": "={{$json.body.datos.titulo || ''}}", "type": "string" },
             { "id": "d3", "name": "texto", "value": "={{$json.body.datos.texto}}", "type": "string" },
             { "id": "d4", "name": "hashtags", "value": "={{$json.body.datos.hashtags || ''}}", "type": "string" },
             { "id": "d5", "name": "fotos", "value": "={{$json.body.datos.fotos || []}}", "type": "array" },
-            { "id": "d6", "name": "caption", "value": "={{ ($json.body.datos.titulo ? $json.body.datos.titulo + '\\n\\n' : '') + $json.body.datos.texto + ($json.body.datos.hashtags ? '\\n\\n' + $json.body.datos.hashtags : '') }}", "type": "string" }
+            { "id": "d6", "name": "caption", "value": "={{ ($json.body.datos.titulo ? $json.body.datos.titulo + '\\n\\n' : '') + $json.body.datos.texto + ($json.body.datos.hashtags ? '\\n\\n' + $json.body.datos.hashtags : '') }}", "type": "string" },
+            { "id": "d7", "name": "foto_principal", "value": "={{ ($json.body.datos.fotos && $json.body.datos.fotos[0]) || '' }}", "type": "string" }
           ]
         },
         "options": {}
@@ -40,9 +42,9 @@
     {
       "parameters": {
         "conditions": {
-          "options": { "caseSensitive": true, "typeValidation": "strict" },
+          "options": { "caseSensitive": true, "typeValidation": "loose" },
           "conditions": [
-            { "leftValue": "={{$json.plataformas}}", "rightValue": "facebook", "operator": { "type": "array", "operation": "contains" } }
+            { "leftValue": "={{$json.plataformas_str}}", "rightValue": "facebook", "operator": { "type": "string", "operation": "contains" } }
           ],
           "combinator": "and"
         }
@@ -60,7 +62,7 @@
         "sendBody": true,
         "bodyParameters": {
           "parameters": [
-            { "name": "url", "value": "={{$json.fotos[0]}}" },
+            { "name": "url", "value": "={{$json.foto_principal}}" },
             { "name": "message", "value": "={{$json.caption}}" },
             { "name": "access_token", "value": "={{$env.FB_PAGE_ACCESS_TOKEN}}" }
           ]
@@ -78,9 +80,9 @@
     {
       "parameters": {
         "conditions": {
-          "options": { "caseSensitive": true, "typeValidation": "strict" },
+          "options": { "caseSensitive": true, "typeValidation": "loose" },
           "conditions": [
-            { "leftValue": "={{$json.plataformas}}", "rightValue": "instagram", "operator": { "type": "array", "operation": "contains" } }
+            { "leftValue": "={{$json.plataformas_str}}", "rightValue": "instagram", "operator": { "type": "string", "operation": "contains" } }
           ],
           "combinator": "and"
         }
@@ -98,7 +100,7 @@
         "sendBody": true,
         "bodyParameters": {
           "parameters": [
-            { "name": "image_url", "value": "={{$json.fotos[0]}}" },
+            { "name": "image_url", "value": "={{$json.foto_principal}}" },
             { "name": "caption", "value": "={{$json.caption}}" },
             { "name": "access_token", "value": "={{$env.IG_ACCESS_TOKEN}}" }
           ]
@@ -136,9 +138,9 @@
     {
       "parameters": {
         "conditions": {
-          "options": { "caseSensitive": true, "typeValidation": "strict" },
+          "options": { "caseSensitive": true, "typeValidation": "loose" },
           "conditions": [
-            { "leftValue": "={{$('Preparar payload').item.json.plataformas}}", "rightValue": "whatsapp", "operator": { "type": "array", "operation": "contains" } }
+            { "leftValue": "={{$json.plataformas_str}}", "rightValue": "whatsapp", "operator": { "type": "string", "operation": "contains" } }
           ],
           "combinator": "and"
         }
@@ -162,7 +164,7 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"messaging_product\": \"whatsapp\",\n  \"to\": \"{{$env.ADMIN_WHATSAPP}}\",\n  \"type\": \"text\",\n  \"text\": { \"body\": {{JSON.stringify($('Preparar payload').item.json.caption)}} }\n}",
+        "jsonBody": "={\n  \"messaging_product\": \"whatsapp\",\n  \"to\": \"{{$env.ADMIN_WHATSAPP}}\",\n  \"type\": \"text\",\n  \"text\": { \"body\": {{JSON.stringify($json.caption)}} }\n}",
         "options": {}
       },
       "id": "wa-send",
@@ -170,29 +172,6 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [900, 900]
-    },
-
-    {
-      "parameters": {
-        "numberInputs": 3
-      },
-      "id": "merge",
-      "name": "Merge resultados",
-      "type": "n8n-nodes-base.merge",
-      "typeVersion": 3,
-      "position": [1360, 500]
-    },
-    {
-      "parameters": {
-        "respondWith": "json",
-        "responseBody": "={{ { status: 'ok', evento: 'marketing_publicar', procesado_en: $now.toISO() } }}",
-        "options": {}
-      },
-      "id": "respond",
-      "name": "Respond OK",
-      "type": "n8n-nodes-base.respondToWebhook",
-      "typeVersion": 1.1,
-      "position": [1560, 500]
     }
   ],
   "pinData": {},
@@ -229,11 +208,7 @@
         [ { "node": "WhatsApp broadcast", "type": "main", "index": 0 } ],
         []
       ]
-    },
-    "Publicar en Facebook": { "main": [ [ { "node": "Merge resultados", "type": "main", "index": 0 } ] ] },
-    "IG — Publicar": { "main": [ [ { "node": "Merge resultados", "type": "main", "index": 1 } ] ] },
-    "WhatsApp broadcast": { "main": [ [ { "node": "Merge resultados", "type": "main", "index": 2 } ] ] },
-    "Merge resultados": { "main": [ [ { "node": "Respond OK", "type": "main", "index": 0 } ] ] }
+    }
   },
   "active": false,
   "settings": { "executionOrder": "v1" },

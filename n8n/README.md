@@ -147,8 +147,25 @@ Body:
 n8n/
 ├── README.md           ← este archivo
 ├── EVENTS.md           ← catálogo completo de eventos y payloads
+├── VALIDATION.md       ← pruebas locales y hallazgos antes de subir a producción
 ├── workflows/
-│   └── taller-libra-bus.json  ← workflow router importable
+│   ├── taller-libra-bus.json           ← router principal (Switch + 10 ramas)
+│   ├── agente-marketing.json           ← publicar FB + IG + WhatsApp
+│   ├── agente-whatsapp.json            ← plantillas WhatsApp a cliente
+│   └── agente-leads-sheets.json        ← notificar admin + Google Sheets
 └── setup/
     └── credentials.md  ← guía detallada de credenciales
 ```
+
+## Patrones de responseMode
+
+Los workflows usan dos modos de respuesta al webhook:
+
+| Workflow | responseMode | Por qué |
+|---|---|---|
+| `taller-libra-bus` (router) | `responseNode` | Sólo usa Set nodes, responde con JSON detallado por evento. |
+| `agente-marketing` | `onReceived` | Fire-and-forget: las HTTP a FB/IG/WA pueden tardar o fallar, no bloquean al cliente. |
+| `agente-whatsapp` | `onReceived` | Igual: plantilla async. |
+| `agente-leads-sheets` | `onReceived` | Igual: notificación + Sheets async. |
+
+Si una request tarda o una API externa falla, el cliente de todas formas recibe `200 {"message":"Workflow was started"}` en <100ms.

@@ -5,7 +5,7 @@
       "parameters": {
         "httpMethod": "POST",
         "path": "taller-libra-whatsapp",
-        "responseMode": "responseNode",
+        "responseMode": "onReceived",
         "options": {}
       },
       "id": "wh-wa",
@@ -13,7 +13,8 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
       "position": [200, 400],
-      "webhookId": "taller-libra-whatsapp"
+      "webhookId": "taller-libra-whatsapp",
+      "notes": "onReceived: responde inmediato. El WhatsApp template se envía async."
     },
     {
       "parameters": {
@@ -108,19 +109,6 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [700, 560]
-    },
-
-    {
-      "parameters": {
-        "respondWith": "json",
-        "responseBody": "={{ { status: 'ok', evento: $json.body?.evento || 'unknown', procesado_en: $now.toISO() } }}",
-        "options": {}
-      },
-      "id": "respond",
-      "name": "Respond OK",
-      "type": "n8n-nodes-base.respondToWebhook",
-      "typeVersion": 1.1,
-      "position": [980, 400]
     }
   ],
   "pinData": {},
@@ -131,9 +119,7 @@
         [ { "node": "WhatsApp — OT Ingresada", "type": "main", "index": 0 } ],
         [ { "node": "WhatsApp — OT Finalizada", "type": "main", "index": 0 } ]
       ]
-    },
-    "WhatsApp — OT Ingresada": { "main": [ [ { "node": "Respond OK", "type": "main", "index": 0 } ] ] },
-    "WhatsApp — OT Finalizada": { "main": [ [ { "node": "Respond OK", "type": "main", "index": 0 } ] ] }
+    }
   },
   "active": false,
   "settings": { "executionOrder": "v1" },

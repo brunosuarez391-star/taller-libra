@@ -5,7 +5,7 @@
       "parameters": {
         "httpMethod": "POST",
         "path": "taller-libra-leads",
-        "responseMode": "responseNode",
+        "responseMode": "onReceived",
         "options": {}
       },
       "id": "wh",
@@ -13,7 +13,8 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
       "position": [200, 400],
-      "webhookId": "taller-libra-leads"
+      "webhookId": "taller-libra-leads",
+      "notes": "onReceived: responde inmediato. Notificación admin y Sheets append corren async."
     },
     {
       "parameters": {
@@ -63,18 +64,6 @@
       "typeVersion": 4.5,
       "position": [460, 520],
       "notes": "Requiere credencial Google Sheets OAuth2 y variable SHEET_LEADS_ID apuntando a una hoja con columnas: ts, nombre, telefono, fuente, mensaje, estado."
-    },
-    {
-      "parameters": {
-        "respondWith": "json",
-        "responseBody": "={{ { status: 'ok', evento: 'lead_captado', procesado_en: $now.toISO() } }}",
-        "options": {}
-      },
-      "id": "respond",
-      "name": "Respond OK",
-      "type": "n8n-nodes-base.respondToWebhook",
-      "typeVersion": 1.1,
-      "position": [740, 400]
     }
   ],
   "pinData": {},
@@ -86,9 +75,7 @@
           { "node": "Google Sheets — Append lead", "type": "main", "index": 0 }
         ]
       ]
-    },
-    "Notificar admin por WhatsApp": { "main": [ [ { "node": "Respond OK", "type": "main", "index": 0 } ] ] },
-    "Google Sheets — Append lead": { "main": [ [ { "node": "Respond OK", "type": "main", "index": 0 } ] ] }
+    }
   },
   "active": false,
   "settings": { "executionOrder": "v1" },
