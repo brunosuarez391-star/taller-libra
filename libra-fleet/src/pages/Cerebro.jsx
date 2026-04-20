@@ -1,19 +1,63 @@
 import { useEffect, useMemo, useState } from 'react'
-import { BUS_URL, getBusLog, limpiarBusLog, pingBus, getGastos } from '../lib/api'
+import { BUS_URL, getBusLog, limpiarBusLog, pingBus, getGastos, dispararEvento } from '../lib/api'
 import { PRECIOS } from '../lib/data'
 
 const AGENTES = [
-  { id: 'recepcion_pesada', nombre: 'Agente Recepción Pesada', evento: 'flota_recepcion', icono: '🚛', descripcion: 'Registra OTs de camiones pesados y tractores. Notifica al cliente.' },
-  { id: 'recepcion_liviana', nombre: 'Agente Recepción Liviana', evento: 'flota_liviana_recepcion', icono: '🚐', descripcion: 'Registra OTs de utilitarios y vehículos livianos.' },
-  { id: 'finalizacion', nombre: 'Agente Finalización', evento: 'ot_finalizada', icono: '✅', descripcion: 'Envía WhatsApp al cliente cuando la OT se finaliza.' },
-  { id: 'crm', nombre: 'Agente CRM', evento: 'cliente_creado', icono: '👥', descripcion: 'Da de alta clientes en sistemas externos y listas de contacto.' },
-  { id: 'ventas', nombre: 'Agente Ventas', evento: 'presupuesto_creado', icono: '💰', descripcion: 'Envía presupuestos al cliente y hace seguimiento.' },
-  { id: 'marketing', nombre: 'Agente Marketing', evento: 'marketing_publicar', icono: '📣', descripcion: 'Publica en Facebook e Instagram. Captura leads de redes.' },
-  { id: 'leads', nombre: 'Agente Leads', evento: 'lead_captado', icono: '🎯', descripcion: 'Recibe consultas de redes y las dirige al equipo de ventas.' },
-  { id: 'finanzas', nombre: 'Agente Finanzas', evento: 'gasto_registrado', icono: '📊', descripcion: 'Consolida ingresos y gastos, genera reportes mensuales.' },
-  { id: 'inventario', nombre: 'Agente Inventario', evento: 'stock_bajo', icono: '📦', descripcion: 'Alerta cuando un insumo cae al stock mínimo y sugiere reposición.' },
-  { id: 'equipo', nombre: 'Agente Equipo', evento: 'mecanico_creado', icono: '👷', descripcion: 'Onboarding de mecánicos: alta en nómina, listas de contacto.' },
-  { id: 'agenda', nombre: 'Agente Agenda', evento: 'turno_creado', icono: '📅', descripcion: 'Confirma turnos programados por WhatsApp y envía recordatorios.' },
+  {
+    id: 'recepcion_pesada', nombre: 'Agente Recepción Pesada', evento: 'flota_recepcion', icono: '🚛',
+    descripcion: 'Registra OTs de camiones pesados y tractores. Notifica al cliente.',
+    testPayload: { ot_numero: 'TEST-OT-001', cliente: 'Cliente Test', telefono: '5492974773784', codigo: 'U05', modelo: 'M.B. 1634', categoria: 'Tractor', km: 182400, proximo_km: 202400, servicio: 'Service 20.000 km', mecanico: 'Bruno Suarez' },
+  },
+  {
+    id: 'recepcion_liviana', nombre: 'Agente Recepción Liviana', evento: 'flota_liviana_recepcion', icono: '🚐',
+    descripcion: 'Registra OTs de utilitarios y vehículos livianos.',
+    testPayload: { ot_numero: 'TEST-OT-002', cliente: 'Cliente Test', telefono: '5492974773784', codigo: 'U20', modelo: 'Utilitario', categoria: 'Utilitario', km: 50000 },
+  },
+  {
+    id: 'finalizacion', nombre: 'Agente Finalización', evento: 'ot_finalizada', icono: '✅',
+    descripcion: 'Envía WhatsApp al cliente cuando la OT se finaliza.',
+    testPayload: { ot_numero: 'TEST-OT-001', cliente: 'Cliente Test', telefono: '5492974773784', vehiculo: 'U05 M.B. 1634 Tractor', km: 182400, proximo_km: 202400, servicio: 'Service 20.000 km' },
+  },
+  {
+    id: 'crm', nombre: 'Agente CRM', evento: 'cliente_creado', icono: '👥',
+    descripcion: 'Da de alta clientes en sistemas externos y listas de contacto.',
+    testPayload: { cliente_id: 'test-uuid', nombre: 'Cliente Test SA', telefono: '5492974773784', email: 'test@ejemplo.com', cuit: '30-12345678-9' },
+  },
+  {
+    id: 'ventas', nombre: 'Agente Ventas', evento: 'presupuesto_creado', icono: '💰',
+    descripcion: 'Envía presupuestos al cliente y hace seguimiento.',
+    testPayload: { numero: 'TEST-PRES-001', cliente: 'Cliente Test', telefono: '5492974773784', email: 'test@ejemplo.com', total: 1239425, validez_dias: 15 },
+  },
+  {
+    id: 'marketing', nombre: 'Agente Marketing', evento: 'marketing_publicar', icono: '📣',
+    descripcion: 'Publica en Facebook e Instagram. Captura leads de redes.',
+    testPayload: { plataformas: ['facebook', 'instagram'], titulo: 'TEST — Service 20k MB', texto: 'Post de prueba desde el panel Cerebro. Ignorar.', hashtags: '#Test #Libra', fotos: ['https://zcballhidbpsatqjnbuw.supabase.co/storage/v1/object/public/fotos/test.jpg'] },
+  },
+  {
+    id: 'leads', nombre: 'Agente Leads', evento: 'lead_captado', icono: '🎯',
+    descripcion: 'Recibe consultas de redes y las dirige al equipo de ventas.',
+    testPayload: { nombre: 'Lead Test', telefono: '5492974773784', fuente: 'Instagram', mensaje: 'Mensaje de prueba. Ignorar.' },
+  },
+  {
+    id: 'finanzas', nombre: 'Agente Finanzas', evento: 'gasto_registrado', icono: '📊',
+    descripcion: 'Consolida ingresos y gastos, genera reportes mensuales.',
+    testPayload: { id: 'test-gasto', fecha: new Date().toISOString().slice(0, 10), categoria: 'Insumos', proveedor: 'Jones SRL', concepto: 'TEST — ignorar', monto: 1000, metodo_pago: 'Efectivo' },
+  },
+  {
+    id: 'inventario', nombre: 'Agente Inventario', evento: 'stock_bajo', icono: '📦',
+    descripcion: 'Alerta cuando un insumo cae al stock mínimo y sugiere reposición.',
+    testPayload: { codigo: 'INV-TEST', descripcion: 'Item de prueba', stock_actual: 2, stock_minimo: 5, proveedor: 'Jones SRL' },
+  },
+  {
+    id: 'equipo', nombre: 'Agente Equipo', evento: 'mecanico_creado', icono: '👷',
+    descripcion: 'Onboarding de mecánicos: alta en nómina, listas de contacto.',
+    testPayload: { nombre: 'Mecánico Test', rol: 'Mecánico', telefono: '5492974773784' },
+  },
+  {
+    id: 'agenda', nombre: 'Agente Agenda', evento: 'turno_creado', icono: '📅',
+    descripcion: 'Confirma turnos programados por WhatsApp y envía recordatorios.',
+    testPayload: { fecha: new Date().toISOString().slice(0, 10), hora: '10:00', cliente: 'Cliente Test', telefono: '5492974773784', vehiculo: 'U05 MB 1634', servicio: 'Service 20.000 km', mecanico: 'Bruno Suarez' },
+  },
 ]
 
 export default function Cerebro({ ordenes, vehiculos, clientes }) {
@@ -21,8 +65,26 @@ export default function Cerebro({ ordenes, vehiculos, clientes }) {
   const [estadoBus, setEstadoBus] = useState('desconocido')
   const [pingando, setPingando] = useState(false)
   const [filtro, setFiltro] = useState('todos')
+  const [testing, setTesting] = useState(null)
+  const [testResults, setTestResults] = useState({})
 
   const refrescarLog = () => setLog(getBusLog())
+
+  const testearAgente = async (agente) => {
+    setTesting(agente.id)
+    const r = await dispararEvento(agente.evento, agente.testPayload, 'test_cerebro')
+    const ok = r?.status !== 'bus_offline' && r?.status !== 'error'
+    setTestResults(prev => ({ ...prev, [agente.id]: { ok, respuesta: r, ts: Date.now() } }))
+    refrescarLog()
+    setTesting(null)
+    setTimeout(() => {
+      setTestResults(prev => {
+        const n = { ...prev }
+        if (n[agente.id]?.ts === (prev[agente.id]?.ts)) delete n[agente.id]
+        return n
+      })
+    }, 8000)
+  }
 
   const hacerPing = async () => {
     setPingando(true)
@@ -127,6 +189,7 @@ export default function Cerebro({ ordenes, vehiculos, clientes }) {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           {estadoAgentes.map(a => {
             const activo = a.total > 0
+            const result = testResults[a.id]
             return (
               <div key={a.id} className={`border rounded-xl p-4 ${activo ? 'border-green-200 bg-green-50/40' : 'border-slate-200 bg-slate-50/40'}`}>
                 <div className="flex items-start justify-between gap-3">
@@ -156,8 +219,23 @@ export default function Cerebro({ ordenes, vehiculos, clientes }) {
                     <p className="font-bold text-red-600">{a.fail}</p>
                   </div>
                 </div>
-                {a.ultimo && (
-                  <p className="text-[11px] text-slate-500 mt-2">Último: {new Date(a.ultimo.ts).toLocaleString('es-AR')}</p>
+                <div className="flex items-center justify-between mt-3 gap-2">
+                  {a.ultimo ? (
+                    <p className="text-[11px] text-slate-500 truncate">Último: {new Date(a.ultimo.ts).toLocaleString('es-AR')}</p>
+                  ) : <span className="text-[11px] text-slate-400 italic">Sin triggers aún</span>}
+                  <button
+                    onClick={() => testearAgente(a)}
+                    disabled={testing === a.id}
+                    className="bg-[#2E75B6] text-white px-2 py-1 rounded text-[11px] font-bold hover:bg-[#1F3864] disabled:opacity-50 whitespace-nowrap"
+                  >
+                    {testing === a.id ? '⏳ Test...' : '🧪 Test'}
+                  </button>
+                </div>
+                {result && (
+                  <div className={`mt-2 text-[11px] p-2 rounded ${result.ok ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                    {result.ok ? '✅ Bus respondió OK' : '❌ ' + (result.respuesta?.status === 'bus_offline' ? 'Bus offline' : 'Error')}
+                    {result.respuesta?.mensaje && <p className="mt-0.5 truncate">{result.respuesta.mensaje}</p>}
+                  </div>
                 )}
               </div>
             )
