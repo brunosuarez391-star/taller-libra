@@ -7,9 +7,19 @@ import Ordenes from './pages/Ordenes'
 import NuevaOT from './pages/NuevaOT'
 import NuevoVehiculo from './pages/NuevoVehiculo'
 import Login from './pages/Login'
+import Cerebro from './pages/Cerebro'
+import Marketing from './pages/Marketing'
+import Finanzas from './pages/Finanzas'
+import Clientes from './pages/Clientes'
+import Inventario from './pages/Inventario'
+import Equipo from './pages/Equipo'
+import Agenda from './pages/Agenda'
 import { ThemeProvider } from './lib/ThemeContext'
 import { AuthProvider, useAuth } from './lib/AuthContext'
-import { getOrdenes, getVehiculos, getClientes, getPresupuestos } from './lib/api'
+import {
+  getOrdenes, getVehiculos, getClientes, getPresupuestos,
+  getGastos, getInventario, getMovimientosInventario, getMecanicos, getAgenda,
+} from './lib/api'
 
 // Lazy load de páginas pesadas — se cargan bajo demanda al navegar
 const Presupuestos = lazy(() => import('./pages/Presupuestos'))
@@ -47,6 +57,11 @@ function ProtectedApp() {
   const [vehiculos, setVehiculos] = useState([])
   const [clientes, setClientes] = useState([])
   const [presupuestos, setPresupuestos] = useState([])
+  const [gastos, setGastos] = useState([])
+  const [insumos, setInsumos] = useState([])
+  const [movimientos, setMovimientos] = useState([])
+  const [mecanicos, setMecanicos] = useState([])
+  const [turnos, setTurnos] = useState([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
 
@@ -54,16 +69,26 @@ function ProtectedApp() {
     try {
       setError(null)
       setLoading(true)
-      const [ots, vehs, cls, pres] = await Promise.all([
-        getOrdenes(),
-        getVehiculos(),
-        getClientes(),
+      const [ots, vehs, cls, pres, gs, ins, movs, mecs, tns] = await Promise.all([
+        getOrdenes().catch(() => []),
+        getVehiculos().catch(() => []),
+        getClientes().catch(() => []),
         getPresupuestos().catch(() => []),
+        getGastos().catch(() => []),
+        getInventario().catch(() => []),
+        getMovimientosInventario().catch(() => []),
+        getMecanicos().catch(() => []),
+        getAgenda().catch(() => []),
       ])
       setOrdenes(ots || [])
       setVehiculos(vehs || [])
       setClientes(cls || [])
       setPresupuestos(pres || [])
+      setGastos(gs || [])
+      setInsumos(ins || [])
+      setMovimientos(movs || [])
+      setMecanicos(mecs || [])
+      setTurnos(tns || [])
     } catch (err) {
       console.error('Error cargando datos:', err)
       setError(err.message || 'Error cargando datos')
@@ -113,14 +138,21 @@ function ProtectedApp() {
             <Suspense fallback={<PageLoader />}>
               <Routes>
                 <Route path="/" element={<Dashboard ordenes={ordenes} vehiculos={vehiculos} />} />
+                <Route path="/cerebro" element={<Cerebro ordenes={ordenes} vehiculos={vehiculos} clientes={clientes} gastos={gastos} onRefresh={cargarDatos} />} />
                 <Route path="/vehiculos" element={<Vehiculos vehiculos={vehiculos} clientes={clientes} onRefresh={cargarDatos} />} />
                 <Route path="/nuevo-vehiculo" element={<NuevoVehiculo vehiculos={vehiculos} clientes={clientes} onCrear={cargarDatos} />} />
                 <Route path="/vehiculo/:codigo" element={<VehiculoDetalle vehiculos={vehiculos} ordenes={ordenes} onRefresh={cargarDatos} />} />
                 <Route path="/ordenes" element={<Ordenes ordenes={ordenes} onRefresh={cargarDatos} />} />
                 <Route path="/nueva-ot" element={<NuevaOT vehiculos={vehiculos} clientes={clientes} onCrear={cargarDatos} />} />
+                <Route path="/clientes" element={<Clientes clientes={clientes} vehiculos={vehiculos} ordenes={ordenes} onRefresh={cargarDatos} />} />
+                <Route path="/agenda" element={<Agenda clientes={clientes} vehiculos={vehiculos} mecanicos={mecanicos} turnos={turnos} onRefresh={cargarDatos} />} />
+                <Route path="/equipo" element={<Equipo ordenes={ordenes} mecanicos={mecanicos} onRefresh={cargarDatos} />} />
+                <Route path="/inventario" element={<Inventario insumos={insumos} movimientos={movimientos} onRefresh={cargarDatos} />} />
                 <Route path="/presupuestos" element={<Presupuestos vehiculos={vehiculos} clientes={clientes} presupuestos={presupuestos} onRefresh={cargarDatos} />} />
                 <Route path="/facturacion" element={<Facturacion ordenes={ordenes} vehiculos={vehiculos} clientes={clientes} presupuestos={presupuestos} />} />
                 <Route path="/cobranzas" element={<Cobranzas ordenes={ordenes} clientes={clientes} presupuestos={presupuestos} />} />
+                <Route path="/finanzas" element={<Finanzas ordenes={ordenes} gastos={gastos} onRefresh={cargarDatos} />} />
+                <Route path="/marketing" element={<Marketing />} />
                 <Route path="/sistema-ia" element={<SistemaIA vehiculos={vehiculos} ordenes={ordenes} clientes={clientes} />} />
                 <Route path="*" element={<Navigate to="/" replace />} />
               </Routes>

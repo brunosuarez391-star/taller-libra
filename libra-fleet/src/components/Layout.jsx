@@ -6,12 +6,19 @@ import ThemeToggle from './ThemeToggle'
 
 const NAV = [
   { path: '/', label: 'Dashboard', icon: '📊' },
+  { path: '/cerebro', label: 'Cerebro', icon: '🧠' },
   { path: '/vehiculos', label: 'Flota', icon: '🚛' },
   { path: '/ordenes', label: 'OTs', icon: '📋' },
-  { path: '/nueva-ot', label: '+ Nueva OT', icon: '➕' },
+  { path: '/nueva-ot', label: 'Nueva OT', icon: '➕' },
+  { path: '/agenda', label: 'Agenda', icon: '📅' },
+  { path: '/clientes', label: 'Clientes', icon: '👥' },
+  { path: '/equipo', label: 'Equipo', icon: '👷' },
+  { path: '/inventario', label: 'Inventario', icon: '📦' },
   { path: '/presupuestos', label: 'Presupuestos', icon: '💰' },
   { path: '/facturacion', label: 'Facturación', icon: '🧾' },
   { path: '/cobranzas', label: 'Cobranzas', icon: '💵' },
+  { path: '/finanzas', label: 'Finanzas', icon: '📈' },
+  { path: '/marketing', label: 'Marketing', icon: '📣' },
   { path: '/sistema-ia', label: 'Sistema IA', icon: '🤖' },
 ]
 

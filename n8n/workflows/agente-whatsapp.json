@@ -1,0 +1,129 @@
+{
+  "name": "Agente WhatsApp — Recepción y Finalización de OT",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "taller-libra-whatsapp",
+        "responseMode": "onReceived",
+        "options": {}
+      },
+      "id": "wh-wa",
+      "name": "Webhook WhatsApp",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [200, 400],
+      "webhookId": "taller-libra-whatsapp",
+      "notes": "onReceived: responde inmediato. El WhatsApp template se envía async."
+    },
+    {
+      "parameters": {
+        "mode": "rules",
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": { "caseSensitive": true, "typeValidation": "strict" },
+                "conditions": [
+                  { "leftValue": "={{$json.body.evento}}", "rightValue": "flota_recepcion", "operator": { "type": "string", "operation": "equals" } }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "recepcion"
+            },
+            {
+              "conditions": {
+                "options": { "caseSensitive": true, "typeValidation": "strict" },
+                "conditions": [
+                  { "leftValue": "={{$json.body.evento}}", "rightValue": "flota_liviana_recepcion", "operator": { "type": "string", "operation": "equals" } }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "recepcion"
+            },
+            {
+              "conditions": {
+                "options": { "caseSensitive": true, "typeValidation": "strict" },
+                "conditions": [
+                  { "leftValue": "={{$json.body.evento}}", "rightValue": "ot_finalizada", "operator": { "type": "string", "operation": "equals" } }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "finalizada"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "sw",
+      "name": "Switch evento",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [420, 400]
+    },
+
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://graph.facebook.com/v19.0/{{$env.WHATSAPP_PHONE_ID}}/messages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Authorization", "value": "=Bearer {{$env.WHATSAPP_TOKEN}}" },
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"messaging_product\": \"whatsapp\",\n  \"to\": \"{{$json.body.datos.telefono}}\",\n  \"type\": \"template\",\n  \"template\": {\n    \"name\": \"ot_ingresada\",\n    \"language\": { \"code\": \"es_AR\" },\n    \"components\": [\n      {\n        \"type\": \"body\",\n        \"parameters\": [\n          { \"type\": \"text\", \"text\": {{JSON.stringify($json.body.datos.cliente)}} },\n          { \"type\": \"text\", \"text\": {{JSON.stringify($json.body.datos.codigo + ' ' + $json.body.datos.modelo)}} },\n          { \"type\": \"text\", \"text\": {{JSON.stringify($json.body.datos.ot_numero)}} }\n        ]\n      }\n    ]\n  }\n}",
+        "options": {}
+      },
+      "id": "wa-recepcion",
+      "name": "WhatsApp — OT Ingresada",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [700, 240],
+      "notes": "Usa plantilla ot_ingresada con 3 parámetros: cliente, vehículo, número OT. La plantilla debe estar aprobada en WhatsApp Manager."
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://graph.facebook.com/v19.0/{{$env.WHATSAPP_PHONE_ID}}/messages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Authorization", "value": "=Bearer {{$env.WHATSAPP_TOKEN}}" },
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"messaging_product\": \"whatsapp\",\n  \"to\": \"{{$json.body.datos.telefono}}\",\n  \"type\": \"template\",\n  \"template\": {\n    \"name\": \"ot_finalizada\",\n    \"language\": { \"code\": \"es_AR\" },\n    \"components\": [\n      {\n        \"type\": \"body\",\n        \"parameters\": [\n          { \"type\": \"text\", \"text\": {{JSON.stringify($json.body.datos.cliente)}} },\n          { \"type\": \"text\", \"text\": {{JSON.stringify($json.body.datos.vehiculo)}} },\n          { \"type\": \"text\", \"text\": {{JSON.stringify($json.body.datos.ot_numero)}} },\n          { \"type\": \"text\", \"text\": {{JSON.stringify(String($json.body.datos.proximo_km))}} }\n        ]\n      }\n    ]\n  }\n}",
+        "options": {}
+      },
+      "id": "wa-finalizada",
+      "name": "WhatsApp — OT Finalizada",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [700, 560]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook WhatsApp": { "main": [ [ { "node": "Switch evento", "type": "main", "index": 0 } ] ] },
+    "Switch evento": {
+      "main": [
+        [ { "node": "WhatsApp — OT Ingresada", "type": "main", "index": 0 } ],
+        [ { "node": "WhatsApp — OT Finalizada", "type": "main", "index": 0 } ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": { "executionOrder": "v1" },
+  "versionId": "1",
+  "meta": { "instanceId": "taller-libra" },
+  "tags": [ { "name": "taller-libra" }, { "name": "whatsapp" } ]
+}
