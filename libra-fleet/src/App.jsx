@@ -12,6 +12,9 @@ import Cerebro from './pages/Cerebro'
 import Marketing from './pages/Marketing'
 import Finanzas from './pages/Finanzas'
 import Clientes from './pages/Clientes'
+import Inventario from './pages/Inventario'
+import Equipo from './pages/Equipo'
+import Agenda from './pages/Agenda'
 import { getOrdenes, getVehiculos, getClientes } from './lib/api'
 
 export default function App() {
@@ -63,6 +66,9 @@ export default function App() {
               <Route path="/facturacion" element={<Facturacion ordenes={ordenes} vehiculos={vehiculos} clientes={clientes} />} />
               <Route path="/finanzas" element={<Finanzas ordenes={ordenes} />} />
               <Route path="/marketing" element={<Marketing />} />
+              <Route path="/inventario" element={<Inventario />} />
+              <Route path="/equipo" element={<Equipo ordenes={ordenes} />} />
+              <Route path="/agenda" element={<Agenda clientes={clientes} vehiculos={vehiculos} />} />
             </Routes>
           </Layout>
         } />

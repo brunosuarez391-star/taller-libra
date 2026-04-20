@@ -11,6 +11,9 @@ const AGENTES = [
   { id: 'marketing', nombre: 'Agente Marketing', evento: 'marketing_publicar', icono: '📣', descripcion: 'Publica en Facebook e Instagram. Captura leads de redes.' },
   { id: 'leads', nombre: 'Agente Leads', evento: 'lead_captado', icono: '🎯', descripcion: 'Recibe consultas de redes y las dirige al equipo de ventas.' },
   { id: 'finanzas', nombre: 'Agente Finanzas', evento: 'gasto_registrado', icono: '📊', descripcion: 'Consolida ingresos y gastos, genera reportes mensuales.' },
+  { id: 'inventario', nombre: 'Agente Inventario', evento: 'stock_bajo', icono: '📦', descripcion: 'Alerta cuando un insumo cae al stock mínimo y sugiere reposición.' },
+  { id: 'equipo', nombre: 'Agente Equipo', evento: 'mecanico_creado', icono: '👷', descripcion: 'Onboarding de mecánicos: alta en nómina, listas de contacto.' },
+  { id: 'agenda', nombre: 'Agente Agenda', evento: 'turno_creado', icono: '📅', descripcion: 'Confirma turnos programados por WhatsApp y envía recordatorios.' },
 ]
 
 export default function Cerebro({ ordenes, vehiculos, clientes }) {

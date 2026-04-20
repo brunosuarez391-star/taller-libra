@@ -256,3 +256,212 @@ export async function eliminarGasto(id) {
   localStorage.setItem(GASTOS_KEY, JSON.stringify(prev.filter(g => g.id !== id)))
   dispararEvento('gasto_eliminado', { id }, 'finanzas')
 }
+
+// ============ INVENTARIO (stock local) ============
+const INVENTARIO_KEY = 'libra_inventario'
+const MOV_INVENTARIO_KEY = 'libra_inv_movimientos'
+
+export function getInventario() {
+  try { return JSON.parse(localStorage.getItem(INVENTARIO_KEY) || '[]') } catch { return [] }
+}
+
+export function getMovimientosInventario() {
+  try { return JSON.parse(localStorage.getItem(MOV_INVENTARIO_KEY) || '[]') } catch { return [] }
+}
+
+function guardarInventario(items) {
+  localStorage.setItem(INVENTARIO_KEY, JSON.stringify(items))
+}
+
+function registrarMovimiento(mov) {
+  const prev = getMovimientosInventario()
+  localStorage.setItem(MOV_INVENTARIO_KEY, JSON.stringify([mov, ...prev].slice(0, 200)))
+}
+
+export async function crearInsumo({ codigo, descripcion, categoria, unidad, stock, stock_minimo, precio_unit, proveedor, ubicacion }) {
+  const items = getInventario()
+  const item = {
+    id: crypto.randomUUID(),
+    codigo: codigo || 'INV-' + (items.length + 1).toString().padStart(3, '0'),
+    descripcion,
+    categoria: categoria || 'Repuestos',
+    unidad: unidad || 'unidad',
+    stock: Number(stock) || 0,
+    stock_minimo: Number(stock_minimo) || 0,
+    precio_unit: Number(precio_unit) || 0,
+    proveedor: proveedor || '',
+    ubicacion: ubicacion || '',
+    created_at: new Date().toISOString(),
+  }
+  guardarInventario([item, ...items])
+  dispararEvento('insumo_creado', { codigo: item.codigo, descripcion: item.descripcion }, 'inventario')
+  return item
+}
+
+export async function actualizarInsumo(id, campos) {
+  const items = getInventario()
+  const idx = items.findIndex(i => i.id === id)
+  if (idx === -1) throw new Error('Insumo no encontrado')
+  items[idx] = { ...items[idx], ...campos }
+  guardarInventario(items)
+  return items[idx]
+}
+
+export async function eliminarInsumo(id) {
+  const items = getInventario().filter(i => i.id !== id)
+  guardarInventario(items)
+}
+
+export async function ajustarStock(id, delta, motivo) {
+  const items = getInventario()
+  const idx = items.findIndex(i => i.id === id)
+  if (idx === -1) throw new Error('Insumo no encontrado')
+  const item = items[idx]
+  const stockAnterior = item.stock
+  item.stock = Math.max(0, stockAnterior + Number(delta))
+  items[idx] = item
+  guardarInventario(items)
+  registrarMovimiento({
+    id: crypto.randomUUID(),
+    ts: new Date().toISOString(),
+    insumo_id: id,
+    codigo: item.codigo,
+    descripcion: item.descripcion,
+    delta: Number(delta),
+    stock_anterior: stockAnterior,
+    stock_nuevo: item.stock,
+    motivo: motivo || (delta > 0 ? 'Ingreso' : 'Egreso'),
+  })
+  if (item.stock_minimo > 0 && item.stock <= item.stock_minimo) {
+    dispararEvento('stock_bajo', {
+      codigo: item.codigo,
+      descripcion: item.descripcion,
+      stock_actual: item.stock,
+      stock_minimo: item.stock_minimo,
+      proveedor: item.proveedor,
+    }, 'inventario')
+  }
+  dispararEvento('stock_ajustado', {
+    codigo: item.codigo,
+    delta: Number(delta),
+    stock_nuevo: item.stock,
+    motivo: motivo || '',
+  }, 'inventario')
+  return item
+}
+
+// ============ EQUIPO (mecánicos locales) ============
+const MECANICOS_KEY = 'libra_mecanicos'
+
+export function getMecanicos() {
+  try {
+    const raw = localStorage.getItem(MECANICOS_KEY)
+    if (raw) return JSON.parse(raw)
+  } catch {
+    // fallback below
+  }
+  // seed: Bruno Suarez por defecto
+  const seed = [{
+    id: crypto.randomUUID(),
+    nombre: 'Bruno Suarez',
+    rol: 'Jefe de Taller',
+    telefono: '2974773784',
+    email: 'bruno@librapatagonia.com',
+    especialidad: 'Motor pesado MB',
+    tarifa_hora: 100000,
+    activo: true,
+    created_at: new Date().toISOString(),
+  }]
+  localStorage.setItem(MECANICOS_KEY, JSON.stringify(seed))
+  return seed
+}
+
+export async function crearMecanico(m) {
+  const prev = getMecanicos()
+  const mec = {
+    id: crypto.randomUUID(),
+    nombre: m.nombre,
+    rol: m.rol || 'Mecánico',
+    telefono: m.telefono || '',
+    email: m.email || '',
+    especialidad: m.especialidad || '',
+    tarifa_hora: Number(m.tarifa_hora) || 0,
+    activo: true,
+    created_at: new Date().toISOString(),
+  }
+  localStorage.setItem(MECANICOS_KEY, JSON.stringify([mec, ...prev]))
+  dispararEvento('mecanico_creado', { nombre: mec.nombre, rol: mec.rol, telefono: mec.telefono }, 'equipo')
+  return mec
+}
+
+export async function actualizarMecanico(id, campos) {
+  const items = getMecanicos()
+  const idx = items.findIndex(i => i.id === id)
+  if (idx === -1) throw new Error('Mecánico no encontrado')
+  items[idx] = { ...items[idx], ...campos }
+  localStorage.setItem(MECANICOS_KEY, JSON.stringify(items))
+  return items[idx]
+}
+
+export async function eliminarMecanico(id) {
+  const items = getMecanicos().filter(i => i.id !== id)
+  localStorage.setItem(MECANICOS_KEY, JSON.stringify(items))
+}
+
+// ============ AGENDA (turnos locales) ============
+const AGENDA_KEY = 'libra_agenda'
+
+export function getAgenda() {
+  try { return JSON.parse(localStorage.getItem(AGENDA_KEY) || '[]') } catch { return [] }
+}
+
+export async function crearTurno({ fecha, hora, cliente, telefono, vehiculo, servicio, mecanico, notas }) {
+  const prev = getAgenda()
+  const turno = {
+    id: crypto.randomUUID(),
+    fecha,
+    hora: hora || '09:00',
+    cliente,
+    telefono: telefono || '',
+    vehiculo: vehiculo || '',
+    servicio: servicio || 'Service',
+    mecanico: mecanico || '',
+    notas: notas || '',
+    estado: 'Programado',
+    created_at: new Date().toISOString(),
+  }
+  localStorage.setItem(AGENDA_KEY, JSON.stringify([turno, ...prev]))
+  dispararEvento('turno_creado', {
+    fecha: turno.fecha,
+    hora: turno.hora,
+    cliente: turno.cliente,
+    telefono: turno.telefono,
+    vehiculo: turno.vehiculo,
+    servicio: turno.servicio,
+    mecanico: turno.mecanico,
+  }, 'agenda')
+  return turno
+}
+
+export async function actualizarTurno(id, campos) {
+  const items = getAgenda()
+  const idx = items.findIndex(t => t.id === id)
+  if (idx === -1) throw new Error('Turno no encontrado')
+  items[idx] = { ...items[idx], ...campos }
+  localStorage.setItem(AGENDA_KEY, JSON.stringify(items))
+  if (campos.estado) {
+    dispararEvento('turno_' + campos.estado.toLowerCase(), {
+      id,
+      cliente: items[idx].cliente,
+      fecha: items[idx].fecha,
+      hora: items[idx].hora,
+    }, 'agenda')
+  }
+  return items[idx]
+}
+
+export async function eliminarTurno(id) {
+  const items = getAgenda().filter(t => t.id !== id)
+  localStorage.setItem(AGENDA_KEY, JSON.stringify(items))
+  dispararEvento('turno_cancelado', { id }, 'agenda')
+}

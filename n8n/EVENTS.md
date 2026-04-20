@@ -218,7 +218,69 @@ Mismo payload base, evento cambia según acción.
 
 ---
 
-## 11. `cerebro.heartbeat` — Ping de salud
+## 11. `stock_bajo` / `stock_ajustado` / `insumo_creado` — Agente Inventario
+
+```json
+{
+  "evento": "stock_bajo",
+  "datos": {
+    "codigo": "INV-001",
+    "descripcion": "Filtro aceite MB 1634",
+    "stock_actual": 2,
+    "stock_minimo": 5,
+    "proveedor": "Jones SRL"
+  }
+}
+```
+
+**Acciones:**
+- WhatsApp al admin: "Stock bajo de {{descripcion}}"
+- Email al proveedor pidiendo cotización
+- Agregar a lista de compras pendientes
+
+---
+
+## 12. `mecanico_creado` — Agente Equipo
+
+```json
+{
+  "evento": "mecanico_creado",
+  "datos": { "nombre": "Juan Pérez", "rol": "Mecánico", "telefono": "549..." }
+}
+```
+
+**Acciones:**
+- Agregar a grupo de WhatsApp del taller
+- Crear acceso en Google Drive compartido
+- Agregar a planilla de sueldos
+
+---
+
+## 13. `turno_creado` / `turno_confirmado` / `turno_cancelado` — Agente Agenda
+
+```json
+{
+  "evento": "turno_creado",
+  "datos": {
+    "fecha": "2026-04-25",
+    "hora": "09:00",
+    "cliente": "Acacio Lorenzo",
+    "telefono": "5492974773784",
+    "vehiculo": "U05 M.B. 1634",
+    "servicio": "Service 20.000 km",
+    "mecanico": "Bruno Suarez"
+  }
+}
+```
+
+**Acciones:**
+- WhatsApp al cliente confirmando turno
+- Recordatorio automático 24hs antes (Schedule Trigger n8n)
+- Bloqueo de agenda del mecánico asignado
+
+---
+
+## 14. `cerebro.heartbeat` — Ping de salud
 
 ```json
 { "evento": "cerebro.heartbeat", "datos": { "fuente": "panel_cerebro" } }
