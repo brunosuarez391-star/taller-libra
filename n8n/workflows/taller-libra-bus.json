@@ -1,0 +1,389 @@
+{
+  "name": "Taller Libra — Bus de Eventos (Router)",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "taller-libra-bus",
+        "responseMode": "responseNode",
+        "options": {
+          "rawBody": false
+        }
+      },
+      "id": "node-webhook-in",
+      "name": "Webhook Bus",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240, 500],
+      "webhookId": "taller-libra-bus"
+    },
+    {
+      "parameters": {
+        "mode": "rules",
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": { "caseSensitive": true, "typeValidation": "strict" },
+                "conditions": [
+                  { "leftValue": "={{$json.body.evento}}", "rightValue": "flota_recepcion", "operator": { "type": "string", "operation": "equals" } }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "flota_recepcion"
+            },
+            {
+              "conditions": {
+                "options": { "caseSensitive": true, "typeValidation": "strict" },
+                "conditions": [
+                  { "leftValue": "={{$json.body.evento}}", "rightValue": "flota_liviana_recepcion", "operator": { "type": "string", "operation": "equals" } }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "flota_liviana_recepcion"
+            },
+            {
+              "conditions": {
+                "options": { "caseSensitive": true, "typeValidation": "strict" },
+                "conditions": [
+                  { "leftValue": "={{$json.body.evento}}", "rightValue": "ot_finalizada", "operator": { "type": "string", "operation": "equals" } }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "ot_finalizada"
+            },
+            {
+              "conditions": {
+                "options": { "caseSensitive": true, "typeValidation": "strict" },
+                "conditions": [
+                  { "leftValue": "={{$json.body.evento}}", "rightValue": "cliente_creado", "operator": { "type": "string", "operation": "equals" } }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "cliente_creado"
+            },
+            {
+              "conditions": {
+                "options": { "caseSensitive": true, "typeValidation": "strict" },
+                "conditions": [
+                  { "leftValue": "={{$json.body.evento}}", "rightValue": "presupuesto_creado", "operator": { "type": "string", "operation": "equals" } }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "presupuesto_creado"
+            },
+            {
+              "conditions": {
+                "options": { "caseSensitive": true, "typeValidation": "strict" },
+                "conditions": [
+                  { "leftValue": "={{$json.body.evento}}", "rightValue": "marketing_publicar", "operator": { "type": "string", "operation": "equals" } }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "marketing_publicar"
+            },
+            {
+              "conditions": {
+                "options": { "caseSensitive": true, "typeValidation": "strict" },
+                "conditions": [
+                  { "leftValue": "={{$json.body.evento}}", "rightValue": "lead_captado", "operator": { "type": "string", "operation": "equals" } }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "lead_captado"
+            },
+            {
+              "conditions": {
+                "options": { "caseSensitive": true, "typeValidation": "strict" },
+                "conditions": [
+                  { "leftValue": "={{$json.body.evento}}", "rightValue": "gasto_registrado", "operator": { "type": "string", "operation": "equals" } }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "gasto_registrado"
+            },
+            {
+              "conditions": {
+                "options": { "caseSensitive": true, "typeValidation": "strict" },
+                "conditions": [
+                  { "leftValue": "={{$json.body.evento}}", "rightValue": "cerebro.heartbeat", "operator": { "type": "string", "operation": "equals" } }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "heartbeat"
+            }
+          ]
+        },
+        "options": { "fallbackOutput": "extra" }
+      },
+      "id": "node-switch",
+      "name": "Switch por Evento",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [500, 500]
+    },
+
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            { "id": "a1", "name": "status", "value": "ok", "type": "string" },
+            { "id": "a2", "name": "evento", "value": "={{$json.body.evento}}", "type": "string" },
+            { "id": "a3", "name": "mensaje", "value": "🚛 OT de camión pesado recibida. Implementar: WhatsApp al cliente + Sheet log.", "type": "string" },
+            { "id": "a4", "name": "cliente", "value": "={{$json.body.datos.cliente}}", "type": "string" },
+            { "id": "a5", "name": "telefono", "value": "={{$json.body.datos.telefono}}", "type": "string" },
+            { "id": "a6", "name": "ot_numero", "value": "={{$json.body.datos.ot_numero}}", "type": "string" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "node-recepcion-pesada",
+      "name": "Agente Recepción Pesada",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [820, 80],
+      "notes": "Reemplazá este Set por: 1) HTTP Request a WhatsApp Cloud API con plantilla ot_ingresada, 2) Google Sheets Append a hoja OTs."
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            { "id": "a1", "name": "status", "value": "ok", "type": "string" },
+            { "id": "a2", "name": "evento", "value": "={{$json.body.evento}}", "type": "string" },
+            { "id": "a3", "name": "mensaje", "value": "🚐 OT de vehículo liviano recibida. Implementar: WhatsApp + Sheet.", "type": "string" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "node-recepcion-liviana",
+      "name": "Agente Recepción Liviana",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [820, 200]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            { "id": "a1", "name": "status", "value": "ok", "type": "string" },
+            { "id": "a2", "name": "evento", "value": "={{$json.body.evento}}", "type": "string" },
+            { "id": "a3", "name": "mensaje", "value": "✅ OT finalizada. Implementar: WhatsApp al cliente + email con remito PDF.", "type": "string" },
+            { "id": "a4", "name": "cliente", "value": "={{$json.body.datos.cliente}}", "type": "string" },
+            { "id": "a5", "name": "telefono", "value": "={{$json.body.datos.telefono}}", "type": "string" },
+            { "id": "a6", "name": "vehiculo", "value": "={{$json.body.datos.vehiculo}}", "type": "string" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "node-ot-finalizada",
+      "name": "Agente Finalización",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [820, 320],
+      "notes": "Reemplazá por: HTTP Request a WhatsApp Cloud API con plantilla ot_finalizada y parámetros {{cliente}}, {{vehiculo}}, {{ot_numero}}, {{proximo_km}}."
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            { "id": "a1", "name": "status", "value": "ok", "type": "string" },
+            { "id": "a2", "name": "evento", "value": "={{$json.body.evento}}", "type": "string" },
+            { "id": "a3", "name": "mensaje", "value": "👥 Cliente nuevo. Implementar: agregar a Sheets + email de bienvenida.", "type": "string" },
+            { "id": "a4", "name": "nombre", "value": "={{$json.body.datos.nombre}}", "type": "string" },
+            { "id": "a5", "name": "email", "value": "={{$json.body.datos.email}}", "type": "string" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "node-cliente-creado",
+      "name": "Agente CRM",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [820, 440]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            { "id": "a1", "name": "status", "value": "ok", "type": "string" },
+            { "id": "a2", "name": "evento", "value": "={{$json.body.evento}}", "type": "string" },
+            { "id": "a3", "name": "mensaje", "value": "💰 Presupuesto creado. Implementar: email con PDF + WhatsApp + seguimiento 3 días.", "type": "string" },
+            { "id": "a4", "name": "numero", "value": "={{$json.body.datos.numero}}", "type": "string" },
+            { "id": "a5", "name": "cliente", "value": "={{$json.body.datos.cliente}}", "type": "string" },
+            { "id": "a6", "name": "total", "value": "={{$json.body.datos.total}}", "type": "number" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "node-presupuesto-creado",
+      "name": "Agente Ventas",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [820, 560]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            { "id": "a1", "name": "status", "value": "ok", "type": "string" },
+            { "id": "a2", "name": "evento", "value": "={{$json.body.evento}}", "type": "string" },
+            { "id": "a3", "name": "mensaje", "value": "📣 Publicación lista para despachar. Implementar: FB Graph API + IG Graph API.", "type": "string" },
+            { "id": "a4", "name": "plataformas", "value": "={{$json.body.datos.plataformas.join(',')}}", "type": "string" },
+            { "id": "a5", "name": "titulo", "value": "={{$json.body.datos.titulo}}", "type": "string" },
+            { "id": "a6", "name": "texto", "value": "={{$json.body.datos.texto}}", "type": "string" },
+            { "id": "a7", "name": "hashtags", "value": "={{$json.body.datos.hashtags}}", "type": "string" },
+            { "id": "a8", "name": "foto_principal", "value": "={{$json.body.datos.fotos[0]}}", "type": "string" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "node-marketing",
+      "name": "Agente Marketing",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [820, 680],
+      "notes": "ESTE ES EL MÁS IMPORTANTE. Reemplazar por: IF (facebook in plataformas) → HTTP POST a graph.facebook.com/v19.0/{FB_PAGE_ID}/photos con url=foto_principal, message=titulo+texto+hashtags, access_token={FB_PAGE_ACCESS_TOKEN}. IF (instagram in plataformas) → 2 POSTs: 1) /media con image_url + caption, 2) /media_publish con creation_id."
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            { "id": "a1", "name": "status", "value": "ok", "type": "string" },
+            { "id": "a2", "name": "evento", "value": "={{$json.body.evento}}", "type": "string" },
+            { "id": "a3", "name": "mensaje", "value": "🎯 Lead capturado. Implementar: notificar admin por WhatsApp + agregar a Sheets + auto-respuesta.", "type": "string" },
+            { "id": "a4", "name": "nombre", "value": "={{$json.body.datos.nombre}}", "type": "string" },
+            { "id": "a5", "name": "telefono", "value": "={{$json.body.datos.telefono}}", "type": "string" },
+            { "id": "a6", "name": "fuente", "value": "={{$json.body.datos.fuente}}", "type": "string" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "node-lead",
+      "name": "Agente Leads",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [820, 800]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            { "id": "a1", "name": "status", "value": "ok", "type": "string" },
+            { "id": "a2", "name": "evento", "value": "={{$json.body.evento}}", "type": "string" },
+            { "id": "a3", "name": "mensaje", "value": "📊 Gasto registrado. Implementar: append a Sheets + alerta si > umbral.", "type": "string" },
+            { "id": "a4", "name": "concepto", "value": "={{$json.body.datos.concepto}}", "type": "string" },
+            { "id": "a5", "name": "monto", "value": "={{$json.body.datos.monto}}", "type": "number" },
+            { "id": "a6", "name": "categoria", "value": "={{$json.body.datos.categoria}}", "type": "string" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "node-gasto",
+      "name": "Agente Finanzas",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [820, 920]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            { "id": "a1", "name": "status", "value": "ok", "type": "string" },
+            { "id": "a2", "name": "evento", "value": "cerebro.heartbeat", "type": "string" },
+            { "id": "a3", "name": "mensaje", "value": "pong", "type": "string" },
+            { "id": "a4", "name": "ts", "value": "={{$now.toISO()}}", "type": "string" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "node-heartbeat",
+      "name": "Heartbeat ACK",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [820, 1040]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            { "id": "a1", "name": "status", "value": "unknown_event", "type": "string" },
+            { "id": "a2", "name": "evento", "value": "={{$json.body.evento}}", "type": "string" },
+            { "id": "a3", "name": "mensaje", "value": "Evento no reconocido por el router. Revisar nombre o agregar rama en el Switch.", "type": "string" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "node-fallback",
+      "name": "Evento Desconocido",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [820, 1160]
+    },
+
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { status: $json.status, evento: $json.evento, mensaje: $json.mensaje, procesado_en: $now.toISO() } }}",
+        "options": {}
+      },
+      "id": "node-respond",
+      "name": "Respond OK",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1120, 500]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook Bus": {
+      "main": [
+        [ { "node": "Switch por Evento", "type": "main", "index": 0 } ]
+      ]
+    },
+    "Switch por Evento": {
+      "main": [
+        [ { "node": "Agente Recepción Pesada", "type": "main", "index": 0 } ],
+        [ { "node": "Agente Recepción Liviana", "type": "main", "index": 0 } ],
+        [ { "node": "Agente Finalización", "type": "main", "index": 0 } ],
+        [ { "node": "Agente CRM", "type": "main", "index": 0 } ],
+        [ { "node": "Agente Ventas", "type": "main", "index": 0 } ],
+        [ { "node": "Agente Marketing", "type": "main", "index": 0 } ],
+        [ { "node": "Agente Leads", "type": "main", "index": 0 } ],
+        [ { "node": "Agente Finanzas", "type": "main", "index": 0 } ],
+        [ { "node": "Heartbeat ACK", "type": "main", "index": 0 } ],
+        [ { "node": "Evento Desconocido", "type": "main", "index": 0 } ]
+      ]
+    },
+    "Agente Recepción Pesada": { "main": [ [ { "node": "Respond OK", "type": "main", "index": 0 } ] ] },
+    "Agente Recepción Liviana": { "main": [ [ { "node": "Respond OK", "type": "main", "index": 0 } ] ] },
+    "Agente Finalización": { "main": [ [ { "node": "Respond OK", "type": "main", "index": 0 } ] ] },
+    "Agente CRM": { "main": [ [ { "node": "Respond OK", "type": "main", "index": 0 } ] ] },
+    "Agente Ventas": { "main": [ [ { "node": "Respond OK", "type": "main", "index": 0 } ] ] },
+    "Agente Marketing": { "main": [ [ { "node": "Respond OK", "type": "main", "index": 0 } ] ] },
+    "Agente Leads": { "main": [ [ { "node": "Respond OK", "type": "main", "index": 0 } ] ] },
+    "Agente Finanzas": { "main": [ [ { "node": "Respond OK", "type": "main", "index": 0 } ] ] },
+    "Heartbeat ACK": { "main": [ [ { "node": "Respond OK", "type": "main", "index": 0 } ] ] },
+    "Evento Desconocido": { "main": [ [ { "node": "Respond OK", "type": "main", "index": 0 } ] ] }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "1",
+  "meta": {
+    "instanceId": "taller-libra"
+  },
+  "tags": [
+    { "name": "taller-libra" },
+    { "name": "cerebro" }
+  ]
+}

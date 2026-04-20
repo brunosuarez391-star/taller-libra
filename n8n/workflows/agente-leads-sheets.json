@@ -1,0 +1,98 @@
+{
+  "name": "Agente Leads — Notificar + Guardar en Sheets",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "taller-libra-leads",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "wh",
+      "name": "Webhook Leads",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [200, 400],
+      "webhookId": "taller-libra-leads"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://graph.facebook.com/v19.0/{{$env.WHATSAPP_PHONE_ID}}/messages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Authorization", "value": "=Bearer {{$env.WHATSAPP_TOKEN}}" },
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"messaging_product\": \"whatsapp\",\n  \"to\": \"{{$env.ADMIN_WHATSAPP}}\",\n  \"type\": \"text\",\n  \"text\": { \"body\": \"🎯 NUEVO LEAD desde {{$json.body.datos.fuente}}\\n\\n👤 {{$json.body.datos.nombre}}\\n📞 {{$json.body.datos.telefono}}\\n💬 {{$json.body.datos.mensaje}}\" }\n}",
+        "options": {}
+      },
+      "id": "wa-admin",
+      "name": "Notificar admin por WhatsApp",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [460, 280]
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "resource": "sheet",
+        "operation": "append",
+        "documentId": "={{$env.SHEET_LEADS_ID}}",
+        "sheetName": "Leads",
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "ts": "={{$json.body.ts || $now.toISO()}}",
+            "nombre": "={{$json.body.datos.nombre}}",
+            "telefono": "={{$json.body.datos.telefono}}",
+            "fuente": "={{$json.body.datos.fuente}}",
+            "mensaje": "={{$json.body.datos.mensaje}}",
+            "estado": "Nuevo"
+          }
+        },
+        "options": {}
+      },
+      "id": "sheet-append",
+      "name": "Google Sheets — Append lead",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [460, 520],
+      "notes": "Requiere credencial Google Sheets OAuth2 y variable SHEET_LEADS_ID apuntando a una hoja con columnas: ts, nombre, telefono, fuente, mensaje, estado."
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { status: 'ok', evento: 'lead_captado', procesado_en: $now.toISO() } }}",
+        "options": {}
+      },
+      "id": "respond",
+      "name": "Respond OK",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [740, 400]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook Leads": {
+      "main": [
+        [
+          { "node": "Notificar admin por WhatsApp", "type": "main", "index": 0 },
+          { "node": "Google Sheets — Append lead", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Notificar admin por WhatsApp": { "main": [ [ { "node": "Respond OK", "type": "main", "index": 0 } ] ] },
+    "Google Sheets — Append lead": { "main": [ [ { "node": "Respond OK", "type": "main", "index": 0 } ] ] }
+  },
+  "active": false,
+  "settings": { "executionOrder": "v1" },
+  "versionId": "1",
+  "meta": { "instanceId": "taller-libra" },
+  "tags": [ { "name": "taller-libra" }, { "name": "leads" } ]
+}

@@ -1,0 +1,243 @@
+{
+  "name": "Agente Marketing — Publicar FB + IG",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "taller-libra-marketing",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "wh-marketing",
+      "name": "Webhook Marketing",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [200, 500],
+      "webhookId": "taller-libra-marketing",
+      "notes": "Alternativa: llamar este workflow desde el router principal en lugar de exponer un webhook propio."
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            { "id": "d1", "name": "plataformas", "value": "={{$json.body.datos.plataformas}}", "type": "array" },
+            { "id": "d2", "name": "titulo", "value": "={{$json.body.datos.titulo || ''}}", "type": "string" },
+            { "id": "d3", "name": "texto", "value": "={{$json.body.datos.texto}}", "type": "string" },
+            { "id": "d4", "name": "hashtags", "value": "={{$json.body.datos.hashtags || ''}}", "type": "string" },
+            { "id": "d5", "name": "fotos", "value": "={{$json.body.datos.fotos || []}}", "type": "array" },
+            { "id": "d6", "name": "caption", "value": "={{ ($json.body.datos.titulo ? $json.body.datos.titulo + '\\n\\n' : '') + $json.body.datos.texto + ($json.body.datos.hashtags ? '\\n\\n' + $json.body.datos.hashtags : '') }}", "type": "string" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "prep",
+      "name": "Preparar payload",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [420, 500]
+    },
+
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "typeValidation": "strict" },
+          "conditions": [
+            { "leftValue": "={{$json.plataformas}}", "rightValue": "facebook", "operator": { "type": "array", "operation": "contains" } }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "if-fb",
+      "name": "¿Facebook?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [660, 320]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://graph.facebook.com/v19.0/{{$env.FB_PAGE_ID}}/photos",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            { "name": "url", "value": "={{$json.fotos[0]}}" },
+            { "name": "message", "value": "={{$json.caption}}" },
+            { "name": "access_token", "value": "={{$env.FB_PAGE_ACCESS_TOKEN}}" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "fb-post",
+      "name": "Publicar en Facebook",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [900, 240],
+      "notes": "Requiere variables FB_PAGE_ID y FB_PAGE_ACCESS_TOKEN en n8n Settings → Variables. El token debe ser permanente (Page Access Token)."
+    },
+
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "typeValidation": "strict" },
+          "conditions": [
+            { "leftValue": "={{$json.plataformas}}", "rightValue": "instagram", "operator": { "type": "array", "operation": "contains" } }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "if-ig",
+      "name": "¿Instagram?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [660, 680]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://graph.facebook.com/v19.0/{{$env.IG_BUSINESS_ACCOUNT_ID}}/media",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            { "name": "image_url", "value": "={{$json.fotos[0]}}" },
+            { "name": "caption", "value": "={{$json.caption}}" },
+            { "name": "access_token", "value": "={{$env.IG_ACCESS_TOKEN}}" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "ig-media",
+      "name": "IG — Crear media",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [900, 600],
+      "notes": "Paso 1 de 2: crea un container con la foto. Devuelve { id: creation_id } que se usa en el paso siguiente."
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://graph.facebook.com/v19.0/{{$env.IG_BUSINESS_ACCOUNT_ID}}/media_publish",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            { "name": "creation_id", "value": "={{$json.id}}" },
+            { "name": "access_token", "value": "={{$env.IG_ACCESS_TOKEN}}" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "ig-publish",
+      "name": "IG — Publicar",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1160, 600],
+      "notes": "Paso 2 de 2: publica el container creado antes."
+    },
+
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "typeValidation": "strict" },
+          "conditions": [
+            { "leftValue": "={{$('Preparar payload').item.json.plataformas}}", "rightValue": "whatsapp", "operator": { "type": "array", "operation": "contains" } }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "if-wa",
+      "name": "¿WhatsApp?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [660, 900]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://graph.facebook.com/v19.0/{{$env.WHATSAPP_PHONE_ID}}/messages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Authorization", "value": "=Bearer {{$env.WHATSAPP_TOKEN}}" },
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"messaging_product\": \"whatsapp\",\n  \"to\": \"{{$env.ADMIN_WHATSAPP}}\",\n  \"type\": \"text\",\n  \"text\": { \"body\": {{JSON.stringify($('Preparar payload').item.json.caption)}} }\n}",
+        "options": {}
+      },
+      "id": "wa-send",
+      "name": "WhatsApp broadcast",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [900, 900]
+    },
+
+    {
+      "parameters": {
+        "numberInputs": 3
+      },
+      "id": "merge",
+      "name": "Merge resultados",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3,
+      "position": [1360, 500]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { status: 'ok', evento: 'marketing_publicar', procesado_en: $now.toISO() } }}",
+        "options": {}
+      },
+      "id": "respond",
+      "name": "Respond OK",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1560, 500]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook Marketing": {
+      "main": [ [ { "node": "Preparar payload", "type": "main", "index": 0 } ] ]
+    },
+    "Preparar payload": {
+      "main": [
+        [
+          { "node": "¿Facebook?", "type": "main", "index": 0 },
+          { "node": "¿Instagram?", "type": "main", "index": 0 },
+          { "node": "¿WhatsApp?", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "¿Facebook?": {
+      "main": [
+        [ { "node": "Publicar en Facebook", "type": "main", "index": 0 } ],
+        []
+      ]
+    },
+    "¿Instagram?": {
+      "main": [
+        [ { "node": "IG — Crear media", "type": "main", "index": 0 } ],
+        []
+      ]
+    },
+    "IG — Crear media": {
+      "main": [ [ { "node": "IG — Publicar", "type": "main", "index": 0 } ] ]
+    },
+    "¿WhatsApp?": {
+      "main": [
+        [ { "node": "WhatsApp broadcast", "type": "main", "index": 0 } ],
+        []
+      ]
+    },
+    "Publicar en Facebook": { "main": [ [ { "node": "Merge resultados", "type": "main", "index": 0 } ] ] },
+    "IG — Publicar": { "main": [ [ { "node": "Merge resultados", "type": "main", "index": 1 } ] ] },
+    "WhatsApp broadcast": { "main": [ [ { "node": "Merge resultados", "type": "main", "index": 2 } ] ] },
+    "Merge resultados": { "main": [ [ { "node": "Respond OK", "type": "main", "index": 0 } ] ] }
+  },
+  "active": false,
+  "settings": { "executionOrder": "v1" },
+  "versionId": "1",
+  "meta": { "instanceId": "taller-libra" },
+  "tags": [ { "name": "taller-libra" }, { "name": "marketing" } ]
+}
