@@ -180,7 +180,7 @@ async function notificarOTFinalizada(otId) {
   // Cargar OT completa con vehículo y cliente
   const { data: ot } = await supabase
     .from('ordenes_trabajo')
-    .select('*, vehiculos(codigo, modelo, marca), clientes(nombre, telefono)')
+    .select('*, vehiculos(codigo, modelo, marca, tipo), clientes(nombre, telefono)')
     .eq('id', otId)
     .single()
 
@@ -190,21 +190,17 @@ async function notificarOTFinalizada(otId) {
     ? `${ot.vehiculos.codigo} ${ot.vehiculos.marca || ''} ${ot.vehiculos.modelo || ''}`.trim()
     : 'Vehículo sin datos'
 
-  const payload = {
+  // Disparar evento al router central (fire-and-forget — no bloquear UI si falla).
+  // El router rutea ot_finalizada al Agente Finalización / Agente WhatsApp.
+  dispararEvento('ot_finalizada', {
     ot_numero: ot.ot_numero,
     cliente: ot.clientes?.nombre || 'Cliente',
-    vehiculo: vehiculoLabel,
-    servicio: ot.servicio_nombre || ot.servicio_tipo || 'Servicio',
     telefono: ot.clientes?.telefono || '',
-  }
-
-  // Disparar webhook n8n (fire-and-forget — no bloquear UI si falla)
-  const webhookUrl = 'https://brunosuerez.app.n8n.cloud/webhook/ot-finalizada'
-  fetch(webhookUrl, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload),
-  }).catch(e => console.warn('[OT] Webhook notificación falló:', e.message))
+    vehiculo: vehiculoLabel,
+    km: ot.km_ingreso,
+    proximo_km: ot.km_proximo,
+    servicio: ot.servicio_nombre || ot.servicio_tipo || 'Servicio',
+  })
 }
 
 export async function actualizarOT(otId, campos) {
