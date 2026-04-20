@@ -8,6 +8,10 @@ import NuevaOT from './pages/NuevaOT'
 import Presupuestos from './pages/Presupuestos'
 import Facturacion from './pages/Facturacion'
 import VehiculoPublico from './pages/VehiculoPublico'
+import Cerebro from './pages/Cerebro'
+import Marketing from './pages/Marketing'
+import Finanzas from './pages/Finanzas'
+import Clientes from './pages/Clientes'
 import { getOrdenes, getVehiculos, getClientes } from './lib/api'
 
 export default function App() {
@@ -50,11 +54,15 @@ export default function App() {
           <Layout>
             <Routes>
               <Route path="/" element={<Dashboard ordenes={ordenes} vehiculos={vehiculos} />} />
+              <Route path="/cerebro" element={<Cerebro ordenes={ordenes} vehiculos={vehiculos} clientes={clientes} />} />
               <Route path="/vehiculos" element={<Vehiculos vehiculos={vehiculos} onRefresh={cargarDatos} />} />
               <Route path="/ordenes" element={<Ordenes ordenes={ordenes} onRefresh={cargarDatos} />} />
               <Route path="/nueva-ot" element={<NuevaOT vehiculos={vehiculos} clientes={clientes} onCrear={cargarDatos} />} />
+              <Route path="/clientes" element={<Clientes clientes={clientes} vehiculos={vehiculos} ordenes={ordenes} onRefresh={cargarDatos} />} />
               <Route path="/presupuestos" element={<Presupuestos vehiculos={vehiculos} clientes={clientes} />} />
               <Route path="/facturacion" element={<Facturacion ordenes={ordenes} vehiculos={vehiculos} clientes={clientes} />} />
+              <Route path="/finanzas" element={<Finanzas ordenes={ordenes} />} />
+              <Route path="/marketing" element={<Marketing />} />
             </Routes>
           </Layout>
         } />

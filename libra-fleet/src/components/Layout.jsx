@@ -3,11 +3,15 @@ import { EMPRESA } from '../lib/data'
 
 const NAV = [
   { path: '/', label: 'Dashboard', icon: '📊' },
+  { path: '/cerebro', label: 'Cerebro', icon: '🧠' },
   { path: '/vehiculos', label: 'Flota', icon: '🚛' },
   { path: '/ordenes', label: 'OTs', icon: '📋' },
-  { path: '/nueva-ot', label: '+ Nueva OT', icon: '➕' },
+  { path: '/nueva-ot', label: 'Nueva OT', icon: '➕' },
+  { path: '/clientes', label: 'Clientes', icon: '👥' },
   { path: '/presupuestos', label: 'Presupuestos', icon: '💰' },
   { path: '/facturacion', label: 'Facturación', icon: '🧾' },
+  { path: '/finanzas', label: 'Finanzas', icon: '📈' },
+  { path: '/marketing', label: 'Marketing', icon: '📣' },
 ]
 
 export default function Layout({ children }) {
