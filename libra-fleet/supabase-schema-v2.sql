@@ -81,6 +81,20 @@ CREATE TABLE IF NOT EXISTS turnos (
 );
 CREATE INDEX IF NOT EXISTS idx_turnos_fecha_hora ON turnos(fecha, hora);
 
+-- Leads (contactos entrantes desde marketing / web / WhatsApp)
+CREATE TABLE IF NOT EXISTS leads (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  ts TIMESTAMPTZ DEFAULT now(),
+  nombre TEXT NOT NULL,
+  telefono TEXT,
+  email TEXT,
+  fuente TEXT DEFAULT 'Web' CHECK (fuente IN ('Web','Facebook','Instagram','WhatsApp','Telefono','Referido','Otro')),
+  mensaje TEXT,
+  estado TEXT DEFAULT 'Nuevo' CHECK (estado IN ('Nuevo','Contactado','Presupuestado','Convertido','Descartado'))
+);
+CREATE INDEX IF NOT EXISTS idx_leads_ts ON leads(ts DESC);
+CREATE INDEX IF NOT EXISTS idx_leads_estado ON leads(estado);
+
 -- ============================================
 -- Seed: Bruno Suarez como Jefe de Taller
 -- ============================================
@@ -96,6 +110,7 @@ ALTER TABLE insumos ENABLE ROW LEVEL SECURITY;
 ALTER TABLE movimientos_inventario ENABLE ROW LEVEL SECURITY;
 ALTER TABLE mecanicos ENABLE ROW LEVEL SECURITY;
 ALTER TABLE turnos ENABLE ROW LEVEL SECURITY;
+ALTER TABLE leads ENABLE ROW LEVEL SECURITY;
 
 DO $$ BEGIN
   CREATE POLICY "Allow all" ON gastos FOR ALL USING (true) WITH CHECK (true);
@@ -115,4 +130,8 @@ EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 DO $$ BEGIN
   CREATE POLICY "Allow all" ON turnos FOR ALL USING (true) WITH CHECK (true);
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+DO $$ BEGIN
+  CREATE POLICY "Allow all" ON leads FOR ALL USING (true) WITH CHECK (true);
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;

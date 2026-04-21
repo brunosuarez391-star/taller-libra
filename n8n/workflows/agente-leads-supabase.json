@@ -1,0 +1,84 @@
+{
+  "name": "Agente Leads — Supabase (reemplaza Sheets)",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "taller-libra-leads",
+        "responseMode": "onReceived",
+        "options": {}
+      },
+      "id": "wh",
+      "name": "Webhook Leads",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [200, 400],
+      "webhookId": "taller-libra-leads",
+      "notes": "onReceived: responde inmediato. Notificación admin (WA) y guardado en Supabase corren async."
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://graph.facebook.com/v19.0/{{$env.WHATSAPP_PHONE_ID}}/messages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Authorization", "value": "=Bearer {{$env.WHATSAPP_TOKEN}}" },
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"messaging_product\": \"whatsapp\",\n  \"to\": \"{{$env.ADMIN_WHATSAPP}}\",\n  \"type\": \"text\",\n  \"text\": { \"body\": \"🎯 NUEVO LEAD desde {{$json.body.datos.fuente}}\\n\\n👤 {{$json.body.datos.nombre}}\\n📞 {{$json.body.datos.telefono}}\\n💬 {{$json.body.datos.mensaje}}\" }\n}",
+        "options": {}
+      },
+      "id": "wa-admin",
+      "name": "Notificar admin por WhatsApp",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [460, 280],
+      "notes": "Opcional: requiere WHATSAPP_TOKEN + WHATSAPP_PHONE_ID + ADMIN_WHATSAPP en env. Si no están, este nodo falla pero el lead igual se guarda en Supabase."
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://zcballhidbpsatqjnbuw.supabase.co/rest/v1/leads",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "apikey", "value": "={{$env.SUPABASE_ANON_KEY}}" },
+            { "name": "Authorization", "value": "=Bearer {{$env.SUPABASE_ANON_KEY}}" },
+            { "name": "Content-Type", "value": "application/json" },
+            { "name": "Prefer", "value": "return=minimal" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"nombre\": \"{{$json.body.datos.nombre}}\",\n  \"telefono\": \"{{$json.body.datos.telefono}}\",\n  \"email\": \"{{$json.body.datos.email || ''}}\",\n  \"fuente\": \"{{$json.body.datos.fuente || 'Web'}}\",\n  \"mensaje\": \"{{$json.body.datos.mensaje || ''}}\",\n  \"estado\": \"Nuevo\"\n}",
+        "options": {}
+      },
+      "id": "supabase-insert",
+      "name": "Supabase — Insertar lead",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [460, 520],
+      "notes": "Escribe directo en la tabla leads de Supabase usando REST API. Requiere env var SUPABASE_ANON_KEY (la misma que usa el frontend en VITE_SUPABASE_ANON_KEY)."
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook Leads": {
+      "main": [
+        [
+          { "node": "Notificar admin por WhatsApp", "type": "main", "index": 0 },
+          { "node": "Supabase — Insertar lead", "type": "main", "index": 0 }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": { "executionOrder": "v1" },
+  "versionId": "1",
+  "meta": { "instanceId": "taller-libra" },
+  "tags": [ { "name": "taller-libra" }, { "name": "leads" }, { "name": "supabase" } ]
+}
