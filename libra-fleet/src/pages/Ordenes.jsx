@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { ESTADOS_OT } from '../lib/data'
 import { actualizarEstadoOT, actualizarOT, eliminarOT } from '../lib/api'
 import EtiquetaService from '../components/EtiquetaService'
+import DriveAttachments from '../components/DriveAttachments'
 
 export default function Ordenes({ ordenes, onRefresh }) {
   const [filtro, setFiltro] = useState('todos')
@@ -256,6 +257,10 @@ export default function Ordenes({ ordenes, onRefresh }) {
 
               {ot.observaciones && editando !== ot.id && (
                 <p className="mt-2 text-xs text-slate-400 italic">📝 {ot.observaciones}</p>
+              )}
+
+              {editando !== ot.id && (
+                <DriveAttachments otId={ot.id} otNumero={ot.ot_numero} />
               )}
             </div>
           ))}

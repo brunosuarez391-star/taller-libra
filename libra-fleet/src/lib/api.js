@@ -122,6 +122,32 @@ export async function crearServiciosOT(otId, items) {
   if (error) throw error
 }
 
+// ============ ARCHIVOS OT (Google Drive) ============
+export async function listArchivosOT(otId) {
+  const { data, error } = await supabase
+    .from('archivos_ot')
+    .select('*')
+    .eq('ot_id', otId)
+    .order('created_at', { ascending: false })
+  if (error) throw error
+  return data || []
+}
+
+export async function crearArchivoOT(archivo) {
+  const { data, error } = await supabase
+    .from('archivos_ot')
+    .insert(archivo)
+    .select()
+    .single()
+  if (error) throw error
+  return data
+}
+
+export async function eliminarArchivoOT(id) {
+  const { error } = await supabase.from('archivos_ot').delete().eq('id', id)
+  if (error) throw error
+}
+
 // ============ PRESUPUESTOS ============
 export async function getPresupuestos() {
   const { data, error } = await supabase.from('presupuestos').select('*, clientes(nombre)').order('created_at', { ascending: false })

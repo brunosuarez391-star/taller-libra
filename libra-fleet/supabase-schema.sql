@@ -49,6 +49,18 @@ CREATE TABLE ordenes_trabajo (
   updated_at TIMESTAMPTZ DEFAULT now()
 );
 
+-- Archivos adjuntos de OT (Google Drive)
+CREATE TABLE archivos_ot (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  ot_id UUID REFERENCES ordenes_trabajo(id) ON DELETE CASCADE,
+  drive_file_id TEXT NOT NULL,
+  nombre TEXT,
+  mime_type TEXT,
+  link TEXT,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+CREATE INDEX archivos_ot_ot_id_idx ON archivos_ot(ot_id);
+
 -- Servicios por OT (checklist)
 CREATE TABLE servicios_ot (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
@@ -181,6 +193,7 @@ ALTER TABLE clientes ENABLE ROW LEVEL SECURITY;
 ALTER TABLE vehiculos ENABLE ROW LEVEL SECURITY;
 ALTER TABLE ordenes_trabajo ENABLE ROW LEVEL SECURITY;
 ALTER TABLE servicios_ot ENABLE ROW LEVEL SECURITY;
+ALTER TABLE archivos_ot ENABLE ROW LEVEL SECURITY;
 ALTER TABLE insumos_ot ENABLE ROW LEVEL SECURITY;
 ALTER TABLE presupuestos ENABLE ROW LEVEL SECURITY;
 ALTER TABLE items_presupuesto ENABLE ROW LEVEL SECURITY;
@@ -192,6 +205,7 @@ CREATE POLICY "Allow all" ON clientes FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "Allow all" ON vehiculos FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "Allow all" ON ordenes_trabajo FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "Allow all" ON servicios_ot FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Allow all" ON archivos_ot FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "Allow all" ON insumos_ot FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "Allow all" ON presupuestos FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "Allow all" ON items_presupuesto FOR ALL USING (true) WITH CHECK (true);
