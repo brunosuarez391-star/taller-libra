@@ -107,7 +107,7 @@ export async function actualizarOT(otId, campos) {
 }
 
 export async function actualizarCobradaOT(otId, cobrada) {
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from('ordenes_trabajo')
     .update({
       cobrada,
@@ -115,7 +115,18 @@ export async function actualizarCobradaOT(otId, cobrada) {
       updated_at: new Date().toISOString(),
     })
     .eq('id', otId)
+    .select('*, vehiculos(codigo, modelo, tipo), clientes(nombre, telefono)')
+    .single()
   if (error) throw error
+  dispararEvento(cobrada ? 'ot_cobrada' : 'ot_descobrada', {
+    ot_numero: data.ot_numero,
+    cliente: data.clientes?.nombre,
+    telefono: data.clientes?.telefono,
+    vehiculo: `${data.vehiculos?.codigo || ''} ${data.vehiculos?.modelo || ''} ${data.vehiculos?.tipo || ''}`.trim(),
+    servicio: data.servicio_nombre,
+    fecha_cobro: data.fecha_cobro,
+  })
+  return data
 }
 
 export async function eliminarOT(otId) {
