@@ -43,6 +43,8 @@ CREATE TABLE ordenes_trabajo (
   servicio_nombre TEXT,
   mecanico TEXT DEFAULT 'Bruno Suarez',
   estado TEXT DEFAULT 'Ingresado' CHECK (estado IN ('Ingresado', 'En proceso', 'Finalizado', 'Entregado')),
+  cobrada BOOLEAN DEFAULT false,
+  fecha_cobro TIMESTAMPTZ,
   observaciones TEXT,
   firma_url TEXT,
   created_at TIMESTAMPTZ DEFAULT now(),

@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { ESTADOS_OT } from '../lib/data'
-import { actualizarEstadoOT, actualizarOT, eliminarOT } from '../lib/api'
+import { actualizarEstadoOT, actualizarOT, eliminarOT, actualizarCobradaOT } from '../lib/api'
 import EtiquetaService from '../components/EtiquetaService'
 
 export default function Ordenes({ ordenes, onRefresh }) {
@@ -11,9 +11,11 @@ export default function Ordenes({ ordenes, onRefresh }) {
   const [confirmEliminar, setConfirmEliminar] = useState(null)
   const [loading, setLoading] = useState(false)
 
-  const filtradas = filtro === 'todos'
-    ? ordenes
-    : ordenes.filter(o => o.estado === filtro)
+  const filtradas =
+    filtro === 'todos' ? ordenes :
+    filtro === 'cobradas' ? ordenes.filter(o => o.cobrada) :
+    filtro === 'pendientes_cobro' ? ordenes.filter(o => !o.cobrada) :
+    ordenes.filter(o => o.estado === filtro)
 
   const handleCambiarEstado = async (ot, nuevoEstado) => {
     setLoading(true)
@@ -67,6 +69,19 @@ export default function Ordenes({ ordenes, onRefresh }) {
     setLoading(false)
   }
 
+  const handleToggleCobrada = async (ot) => {
+    const nuevoValor = !ot.cobrada
+    if (ot.cobrada && !window.confirm(`¿Desmarcar como cobrada la OT ${ot.ot_numero}?`)) return
+    setLoading(true)
+    try {
+      await actualizarCobradaOT(ot.id, nuevoValor)
+      await onRefresh()
+    } catch (err) {
+      alert('Error: ' + err.message)
+    }
+    setLoading(false)
+  }
+
   const handleEliminar = async (otId) => {
     setLoading(true)
     try {
@@ -96,6 +111,12 @@ export default function Ordenes({ ordenes, onRefresh }) {
             </button>
           )
         })}
+        <button onClick={() => setFiltro('cobradas')} className={`px-4 py-2 rounded-lg text-sm font-bold transition-colors ${filtro === 'cobradas' ? 'bg-emerald-600 text-white' : 'bg-emerald-100 text-emerald-700'}`}>
+          💵 Cobradas ({ordenes.filter(o => o.cobrada).length})
+        </button>
+        <button onClick={() => setFiltro('pendientes_cobro')} className={`px-4 py-2 rounded-lg text-sm font-bold transition-colors ${filtro === 'pendientes_cobro' ? 'bg-amber-600 text-white' : 'bg-amber-100 text-amber-700'}`}>
+          ⏳ Pendientes de cobro ({ordenes.filter(o => !o.cobrada).length})
+        </button>
       </div>
 
       {/* Modal etiqueta */}
@@ -138,7 +159,12 @@ export default function Ordenes({ ordenes, onRefresh }) {
       {/* Lista de OTs */}
       {filtradas.length === 0 ? (
         <div className="bg-white rounded-xl shadow p-8 text-center text-slate-400">
-          No hay OTs {filtro !== 'todos' ? `en estado "${filtro}"` : 'todavía'}
+          No hay OTs {
+            filtro === 'todos' ? 'todavía' :
+            filtro === 'cobradas' ? 'cobradas' :
+            filtro === 'pendientes_cobro' ? 'pendientes de cobro' :
+            `en estado "${filtro}"`
+          }
         </div>
       ) : (
         <div className="space-y-4">
@@ -154,11 +180,28 @@ export default function Ordenes({ ordenes, onRefresh }) {
                     ot.estado === 'Finalizado' ? 'bg-green-100 text-green-800' :
                     'bg-slate-100 text-slate-800'
                   }`}>{ot.estado}</span>
+                  {ot.cobrada && (
+                    <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 border border-emerald-300">
+                      💵 Cobrada
+                    </span>
+                  )}
                   <span className="text-xs text-slate-400">{new Date(ot.created_at).toLocaleDateString('es-AR')}</span>
                 </div>
 
                 {/* Botones de acción */}
                 <div className="flex gap-2 flex-wrap">
+                  <button
+                    onClick={() => handleToggleCobrada(ot)}
+                    disabled={loading}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-bold disabled:opacity-50 ${
+                      ot.cobrada
+                        ? 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200'
+                        : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                    }`}
+                    title={ot.cobrada ? 'Desmarcar como cobrada' : 'Marcar como cobrada'}
+                  >
+                    {ot.cobrada ? '↩️ Desmarcar cobrada' : '💵 Marcar cobrada'}
+                  </button>
                   {editando !== ot.id && (
                     <button onClick={() => handleEditar(ot)} className="bg-slate-100 text-slate-600 px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-slate-200">
                       ✏️ Editar

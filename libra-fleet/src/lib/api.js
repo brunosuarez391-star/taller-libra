@@ -106,6 +106,18 @@ export async function actualizarOT(otId, campos) {
   if (error) throw error
 }
 
+export async function actualizarCobradaOT(otId, cobrada) {
+  const { error } = await supabase
+    .from('ordenes_trabajo')
+    .update({
+      cobrada,
+      fecha_cobro: cobrada ? new Date().toISOString() : null,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', otId)
+  if (error) throw error
+}
+
 export async function eliminarOT(otId) {
   const { error: e1 } = await supabase.from('servicios_ot').delete().eq('ot_id', otId)
   if (e1) throw e1

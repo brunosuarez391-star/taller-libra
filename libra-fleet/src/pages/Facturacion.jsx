@@ -1,14 +1,29 @@
 import { useState, useMemo } from 'react'
 import { PRECIOS } from '../lib/data'
 import { EMPRESA } from '../lib/data'
+import { actualizarCobradaOT } from '../lib/api'
 
-export default function Facturacion({ ordenes, vehiculos, clientes }) {
+export default function Facturacion({ ordenes, vehiculos, clientes, onRefresh }) {
   const [mesSeleccionado, setMesSeleccionado] = useState(() => {
     const now = new Date()
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
   })
   const [clienteId, setClienteId] = useState('todos')
   const [verDetalle, setVerDetalle] = useState(null)
+  const [loadingCobro, setLoadingCobro] = useState(null)
+
+  const handleToggleCobrada = async (ot) => {
+    const nuevoValor = !ot.cobrada
+    if (ot.cobrada && !window.confirm(`¿Desmarcar como cobrada la OT ${ot.ot_numero}?`)) return
+    setLoadingCobro(ot.id)
+    try {
+      await actualizarCobradaOT(ot.id, nuevoValor)
+      if (onRefresh) await onRefresh()
+    } catch (err) {
+      alert('Error: ' + err.message)
+    }
+    setLoadingCobro(null)
+  }
 
   // Filtrar OTs del mes seleccionado
   const otsMes = useMemo(() => {
@@ -41,6 +56,10 @@ export default function Facturacion({ ordenes, vehiculos, clientes }) {
       grupos[clienteNombre].totalMO += precio.mo
       grupos[clienteNombre].totalInsumos += precio.insumos
       grupos[clienteNombre].totalNeto += precio.total
+      if (!grupos[clienteNombre].totalCobrado) grupos[clienteNombre].totalCobrado = 0
+      if (!grupos[clienteNombre].totalPendiente) grupos[clienteNombre].totalPendiente = 0
+      if (ot.cobrada) grupos[clienteNombre].totalCobrado += precio.total
+      else grupos[clienteNombre].totalPendiente += precio.total
     })
     return Object.values(grupos)
   }, [otsFiltradas])
@@ -48,6 +67,8 @@ export default function Facturacion({ ordenes, vehiculos, clientes }) {
   const totalGeneral = resumenPorCliente.reduce((s, g) => s + g.totalNeto, 0)
   const ivaTotal = Math.round(totalGeneral * 0.21)
   const totalConIva = totalGeneral + ivaTotal
+  const totalCobradoNeto = resumenPorCliente.reduce((s, g) => s + (g.totalCobrado || 0), 0)
+  const totalPendienteNeto = resumenPorCliente.reduce((s, g) => s + (g.totalPendiente || 0), 0)
 
   const formatARS = (n) => '$' + n.toLocaleString('es-AR')
   const mesNombre = new Date(mesSeleccionado + '-15').toLocaleString('es-AR', { month: 'long', year: 'numeric' })
@@ -88,7 +109,7 @@ export default function Facturacion({ ordenes, vehiculos, clientes }) {
       </div>
 
       {/* KPIs del mes */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
         <div className="bg-[#1F3864] text-white rounded-xl p-4 shadow">
           <p className="text-2xl font-bold">{otsFiltradas.length}</p>
           <p className="text-xs text-blue-200">OTs en {mesNombre}</p>
@@ -104,6 +125,22 @@ export default function Facturacion({ ordenes, vehiculos, clientes }) {
         <div className="bg-green-600 text-white rounded-xl p-4 shadow">
           <p className="text-lg font-bold">{formatARS(totalConIva)}</p>
           <p className="text-xs text-green-200">Total c/IVA</p>
+        </div>
+      </div>
+
+      {/* KPIs de cobranza */}
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
+        <div className="bg-emerald-600 text-white rounded-xl p-4 shadow">
+          <p className="text-lg font-bold">{formatARS(totalCobradoNeto)}</p>
+          <p className="text-xs text-emerald-100">Cobrado s/IVA ({otsFiltradas.filter(o => o.cobrada).length} OTs)</p>
+        </div>
+        <div className="bg-amber-600 text-white rounded-xl p-4 shadow">
+          <p className="text-lg font-bold">{formatARS(totalPendienteNeto)}</p>
+          <p className="text-xs text-amber-100">Pendiente de cobro ({otsFiltradas.filter(o => !o.cobrada).length} OTs)</p>
+        </div>
+        <div className="bg-slate-100 text-slate-700 rounded-xl p-4 shadow border border-slate-200">
+          <p className="text-lg font-bold">{totalGeneral > 0 ? Math.round((totalCobradoNeto / totalGeneral) * 100) : 0}%</p>
+          <p className="text-xs text-slate-500">% cobrado del mes</p>
         </div>
       </div>
 
@@ -124,6 +161,9 @@ export default function Facturacion({ ordenes, vehiculos, clientes }) {
                 <div className="text-right">
                   <p className="font-bold text-lg">{formatARS(grupo.totalNeto)}</p>
                   <p className="text-blue-200 text-xs">+ IVA: {formatARS(Math.round(grupo.totalNeto * 0.21))}</p>
+                  <p className="text-emerald-300 text-xs mt-1">
+                    ✓ Cobrado: {formatARS(grupo.totalCobrado || 0)} · ⏳ Pendiente: {formatARS(grupo.totalPendiente || 0)}
+                  </p>
                 </div>
               </div>
 
@@ -140,11 +180,12 @@ export default function Facturacion({ ordenes, vehiculos, clientes }) {
                         <th className="px-3 py-2 text-right">M.O.</th>
                         <th className="px-3 py-2 text-right">Insumos</th>
                         <th className="px-3 py-2 text-right">Total s/IVA</th>
+                        <th className="px-3 py-2 text-center">Cobrada</th>
                       </tr>
                     </thead>
                     <tbody>
                       {grupo.ots.map((ot, i) => (
-                        <tr key={i} className="border-b border-slate-100 hover:bg-slate-50">
+                        <tr key={i} className={`border-b border-slate-100 hover:bg-slate-50 ${ot.cobrada ? 'bg-emerald-50/50' : ''}`}>
                           <td className="px-3 py-2 font-mono font-bold">{ot.ot_numero}</td>
                           <td className="px-3 py-2">{new Date(ot.created_at).toLocaleDateString('es-AR')}</td>
                           <td className="px-3 py-2">{ot.vehiculos?.codigo} {ot.vehiculos?.modelo}</td>
@@ -153,6 +194,20 @@ export default function Facturacion({ ordenes, vehiculos, clientes }) {
                           <td className="px-3 py-2 text-right font-mono">{formatARS(ot.mo)}</td>
                           <td className="px-3 py-2 text-right font-mono">{formatARS(ot.insumos)}</td>
                           <td className="px-3 py-2 text-right font-mono font-bold">{formatARS(ot.total)}</td>
+                          <td className="px-3 py-2 text-center">
+                            <button
+                              onClick={() => handleToggleCobrada(ot)}
+                              disabled={loadingCobro === ot.id}
+                              className={`px-2 py-1 rounded-md text-xs font-bold disabled:opacity-50 ${
+                                ot.cobrada
+                                  ? 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200 border border-emerald-300'
+                                  : 'bg-slate-100 text-slate-500 hover:bg-slate-200 border border-slate-200'
+                              }`}
+                              title={ot.cobrada ? 'Desmarcar como cobrada' : 'Marcar como cobrada'}
+                            >
+                              {loadingCobro === ot.id ? '...' : ot.cobrada ? '✓ Cobrada' : 'Marcar'}
+                            </button>
+                          </td>
                         </tr>
                       ))}
                     </tbody>
@@ -162,6 +217,9 @@ export default function Facturacion({ ordenes, vehiculos, clientes }) {
                         <td className="px-3 py-2 text-right font-mono">{formatARS(grupo.totalMO)}</td>
                         <td className="px-3 py-2 text-right font-mono">{formatARS(grupo.totalInsumos)}</td>
                         <td className="px-3 py-2 text-right font-mono text-[#1F3864]">{formatARS(grupo.totalNeto)}</td>
+                        <td className="px-3 py-2 text-center text-xs text-slate-500">
+                          {grupo.ots.filter(o => o.cobrada).length}/{grupo.ots.length}
+                        </td>
                       </tr>
                     </tfoot>
                   </table>
