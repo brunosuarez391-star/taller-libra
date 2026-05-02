@@ -51,7 +51,7 @@ export default function NuevaOT({ vehiculos, clientes, onCrear }) {
     ? vehiculos.filter(v => v.cliente_id === form.cliente_id)
     : vehiculos
 
-  // Cuando se selecciona un vehículo, auto-completar cliente y km
+  // Cuando se selecciona un vehículo, auto-completar cliente, km, patente y chofer
   const handleSelectVehiculo = (vehId) => {
     const veh = vehiculos.find(v => v.id === vehId)
     if (!veh) {
@@ -61,10 +61,11 @@ export default function NuevaOT({ vehiculos, clientes, onCrear }) {
     setForm(f => ({
       ...f,
       vehiculo_id: vehId,
-      // Auto-asignar cliente si coincide
       cliente_id: f.cliente_id || veh.cliente_id || '',
-      // Pre-llenar km con el actual (solo si el form está vacío)
       km: f.km || String(veh.km_actuales || ''),
+      // Pre-llenar desde el vehículo si el form está vacío
+      patente: f.patente || veh.patente || '',
+      chofer: f.chofer || veh.chofer || '',
     }))
   }
 
@@ -94,12 +95,6 @@ export default function NuevaOT({ vehiculos, clientes, onCrear }) {
     try {
       const otNum = 'OT-' + new Date().getFullYear() + '-' + String(Math.floor(Math.random() * 999) + 1).padStart(3, '0')
 
-      const obs = [
-        form.patente ? `PAT: ${form.patente.toUpperCase()}` : '',
-        form.chofer ? `CHOFER: ${form.chofer}` : '',
-        form.observaciones || '',
-      ].filter(Boolean).join(' | ')
-
       const itemsLimpios = esReparacion
         ? itemsExtra.filter(it => it.descripcion.trim() && it.precio_unit > 0)
         : []
@@ -112,12 +107,28 @@ export default function NuevaOT({ vehiculos, clientes, onCrear }) {
         km_proximo: esReparacion ? kmNumero : kmNumero + 20000,
         servicio_tipo: form.servicio,
         servicio_nombre: esReparacion ? 'Reparación / Trabajo extra' : servicio.nombre,
+        tipo_servicio: esReparacion ? 'reparacion' : 'service',
         mecanico: form.mecanico,
-        observaciones: obs,
+        patente: form.patente?.trim().toUpperCase() || null,
+        chofer: form.chofer?.trim() || null,
+        observaciones: form.observaciones || '',
         estado: 'Ingresado',
       }
 
       const otDB = await crearOrden(orden)
+
+      // Sincronizar patente/chofer al vehículo si vinieron nuevos
+      if ((form.patente && form.patente !== vehiculo?.patente) || (form.chofer && form.chofer !== vehiculo?.chofer)) {
+        try {
+          const { actualizarVehiculo } = await import('../lib/api')
+          await actualizarVehiculo(form.vehiculo_id, {
+            patente: form.patente?.trim().toUpperCase() || null,
+            chofer: form.chofer?.trim() || null,
+          })
+        } catch (e) {
+          console.warn('No se pudo sincronizar patente/chofer al vehículo:', e.message)
+        }
+      }
 
       if (esReparacion && itemsLimpios.length > 0) {
         await crearInsumosOT(otDB.id, itemsLimpios)

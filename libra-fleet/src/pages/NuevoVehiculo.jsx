@@ -21,7 +21,14 @@ export default function NuevoVehiculo({ clientes, vehiculos, onCrear }) {
     km_actuales: 0,
     cliente_id: '',
     activo: true,
+    patente: '',
+    chofer: '',
+    chofer_telefono: '',
+    vtv_vencimiento: '',
+    seguro_vencimiento: '',
+    ruta_vencimiento: '',
   })
+  const [mostrarVencimientos, setMostrarVencimientos] = useState(false)
 
   // Sugerir siguiente código (U14, U15, etc.)
   const siguienteCodigo = useMemo(() => {
@@ -64,6 +71,12 @@ export default function NuevoVehiculo({ clientes, vehiculos, onCrear }) {
         km_actuales: parseInt(form.km_actuales) || 0,
         cliente_id: form.cliente_id || null,
         activo: form.activo,
+        patente: form.patente.trim().toUpperCase() || null,
+        chofer: form.chofer.trim() || null,
+        chofer_telefono: form.chofer_telefono.trim() || null,
+        vtv_vencimiento: form.vtv_vencimiento || null,
+        seguro_vencimiento: form.seguro_vencimiento || null,
+        ruta_vencimiento: form.ruta_vencimiento || null,
       }
       await crearVehiculo(payload)
       await onCrear()
@@ -244,6 +257,85 @@ export default function NuevoVehiculo({ clientes, vehiculos, onCrear }) {
               <option value="">Sin cliente asignado</option>
               {clientes.map(c => <option key={c.id} value={c.id}>{c.nombre}</option>)}
             </select>
+          )}
+        </div>
+
+        {/* Patente y chofer */}
+        <div className="border-t border-slate-200 dark:border-slate-700 pt-4 mb-4 mt-2">
+          <p className="text-xs font-bold text-slate-500 dark:text-slate-400 mb-3 uppercase tracking-wide">Identificación y conductor</p>
+          <div className="grid grid-cols-2 gap-4 mb-3">
+            <div>
+              <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">Patente / Dominio</label>
+              <input
+                type="text"
+                value={form.patente}
+                onChange={e => setForm({ ...form, patente: e.target.value.toUpperCase() })}
+                placeholder="AB123CD"
+                className="w-full border border-slate-300 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100 rounded-lg px-4 py-2.5 focus:border-[#2E75B6] focus:outline-none uppercase font-mono"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">Tel. chofer</label>
+              <input
+                type="text"
+                value={form.chofer_telefono}
+                onChange={e => setForm({ ...form, chofer_telefono: e.target.value })}
+                placeholder="2974xxxxxx"
+                className="w-full border border-slate-300 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100 rounded-lg px-4 py-2.5 focus:border-[#2E75B6] focus:outline-none font-mono"
+              />
+            </div>
+          </div>
+          <div>
+            <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">Chofer asignado</label>
+            <input
+              type="text"
+              value={form.chofer}
+              onChange={e => setForm({ ...form, chofer: e.target.value })}
+              placeholder="Nombre del chofer"
+              className="w-full border border-slate-300 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100 rounded-lg px-4 py-2.5 focus:border-[#2E75B6] focus:outline-none"
+            />
+          </div>
+        </div>
+
+        {/* Vencimientos (opcional) */}
+        <div className="border-t border-slate-200 dark:border-slate-700 pt-4 mb-4">
+          <button
+            type="button"
+            onClick={() => setMostrarVencimientos(!mostrarVencimientos)}
+            className="text-xs font-bold text-[#2E75B6] hover:underline mb-2"
+          >
+            {mostrarVencimientos ? '− Ocultar vencimientos' : '+ Cargar vencimientos VTV / Seguro / RUTA'}
+          </button>
+          {mostrarVencimientos && (
+            <div className="grid grid-cols-3 gap-3">
+              <div>
+                <label className="block text-xs font-bold text-slate-600 dark:text-slate-400 mb-1">VTV vence</label>
+                <input
+                  type="date"
+                  value={form.vtv_vencimiento}
+                  onChange={e => setForm({ ...form, vtv_vencimiento: e.target.value })}
+                  className="w-full border border-slate-300 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100 rounded-lg px-3 py-2 text-sm"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-600 dark:text-slate-400 mb-1">Seguro vence</label>
+                <input
+                  type="date"
+                  value={form.seguro_vencimiento}
+                  onChange={e => setForm({ ...form, seguro_vencimiento: e.target.value })}
+                  className="w-full border border-slate-300 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100 rounded-lg px-3 py-2 text-sm"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-600 dark:text-slate-400 mb-1">RUTA vence</label>
+                <input
+                  type="date"
+                  value={form.ruta_vencimiento}
+                  onChange={e => setForm({ ...form, ruta_vencimiento: e.target.value })}
+                  className="w-full border border-slate-300 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100 rounded-lg px-3 py-2 text-sm"
+                />
+              </div>
+            </div>
           )}
         </div>
 

@@ -36,6 +36,15 @@ export default function Vehiculos({ vehiculos, clientes = [], onRefresh }) {
       anio: v.anio || '',
       cliente_id: v.cliente_id || '',
       activo: v.activo !== false,
+      patente: v.patente || '',
+      chofer: v.chofer || '',
+      chofer_telefono: v.chofer_telefono || '',
+      vtv_vencimiento: v.vtv_vencimiento || '',
+      seguro_vencimiento: v.seguro_vencimiento || '',
+      seguro_compania: v.seguro_compania || '',
+      seguro_poliza: v.seguro_poliza || '',
+      ruta_vencimiento: v.ruta_vencimiento || '',
+      rto_vencimiento: v.rto_vencimiento || '',
     })
   }
 
@@ -52,6 +61,15 @@ export default function Vehiculos({ vehiculos, clientes = [], onRefresh }) {
         anio: editForm.anio ? parseInt(editForm.anio) : null,
         cliente_id: editForm.cliente_id || null,
         activo: editForm.activo,
+        patente: editForm.patente?.trim().toUpperCase() || null,
+        chofer: editForm.chofer?.trim() || null,
+        chofer_telefono: editForm.chofer_telefono?.trim() || null,
+        vtv_vencimiento: editForm.vtv_vencimiento || null,
+        seguro_vencimiento: editForm.seguro_vencimiento || null,
+        seguro_compania: editForm.seguro_compania?.trim() || null,
+        seguro_poliza: editForm.seguro_poliza?.trim() || null,
+        ruta_vencimiento: editForm.ruta_vencimiento || null,
+        rto_vencimiento: editForm.rto_vencimiento || null,
       })
       await onRefresh()
       setEditModal(null)
@@ -120,6 +138,40 @@ export default function Vehiculos({ vehiculos, clientes = [], onRefresh }) {
             <h3 className="font-bold text-lg text-[#1F3864] dark:text-blue-300">{v.marca} {v.modelo}</h3>
             <p className="text-slate-500 dark:text-slate-400 text-sm">{v.tipo} {v.anio && `· ${v.anio}`}</p>
             {v.clientes && <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">Cliente: {v.clientes.nombre}</p>}
+
+            {/* Patente / Chofer / Vencimientos */}
+            <div className="flex flex-wrap gap-1 mt-2 text-xs">
+              {v.patente && (
+                <span className="bg-slate-100 dark:bg-slate-900 text-slate-700 dark:text-slate-200 px-2 py-0.5 rounded font-mono">
+                  {v.patente}
+                </span>
+              )}
+              {v.chofer && (
+                <span className="bg-blue-50 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 px-2 py-0.5 rounded">
+                  👤 {v.chofer}
+                </span>
+              )}
+            </div>
+            {(v.vtv_vencimiento || v.seguro_vencimiento || v.ruta_vencimiento) && (
+              <div className="flex flex-wrap gap-1 mt-1 text-xs">
+                {[
+                  ['VTV', v.vtv_vencimiento],
+                  ['Seguro', v.seguro_vencimiento],
+                  ['RUTA', v.ruta_vencimiento],
+                ].filter(([, f]) => f).map(([label, fecha]) => {
+                  const dias = Math.floor((new Date(fecha + 'T12:00:00') - new Date()) / 86400000)
+                  const tone = dias < 0 ? 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300'
+                    : dias <= 7 ? 'bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-300'
+                    : dias <= 30 ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/40 dark:text-yellow-300'
+                    : 'bg-green-50 text-green-700 dark:bg-green-900/40 dark:text-green-300'
+                  return (
+                    <span key={label} className={`${tone} px-2 py-0.5 rounded`}>
+                      {label}: {new Date(fecha + 'T12:00:00').toLocaleDateString('es-AR')}
+                    </span>
+                  )
+                })}
+              </div>
+            )}
 
             {/* KM con edición inline */}
             <div className="mt-3 bg-slate-50 dark:bg-slate-900 rounded-lg p-2">
@@ -238,6 +290,109 @@ export default function Vehiculos({ vehiculos, clientes = [], onRefresh }) {
                   <option value="">Sin cliente asignado</option>
                   {clientes.map(c => <option key={c.id} value={c.id}>{c.nombre}</option>)}
                 </select>
+              </div>
+
+              {/* Patente y chofer */}
+              <div className="border-t border-slate-200 dark:border-slate-700 pt-3 mt-2">
+                <p className="text-xs font-bold text-slate-500 dark:text-slate-400 mb-2 uppercase tracking-wide">Identificación y conductor</p>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-600 dark:text-slate-400 mb-1">Patente / Dominio</label>
+                    <input
+                      type="text"
+                      value={editForm.patente}
+                      onChange={e => setEditForm({ ...editForm, patente: e.target.value.toUpperCase() })}
+                      placeholder="AB123CD"
+                      className="w-full border border-slate-300 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100 rounded-lg px-3 py-2 text-sm uppercase font-mono"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-600 dark:text-slate-400 mb-1">Tel. chofer</label>
+                    <input
+                      type="text"
+                      value={editForm.chofer_telefono}
+                      onChange={e => setEditForm({ ...editForm, chofer_telefono: e.target.value })}
+                      placeholder="2974xxxxxx"
+                      className="w-full border border-slate-300 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100 rounded-lg px-3 py-2 text-sm font-mono"
+                    />
+                  </div>
+                </div>
+                <div className="mt-2">
+                  <label className="block text-xs font-bold text-slate-600 dark:text-slate-400 mb-1">Chofer</label>
+                  <input
+                    type="text"
+                    value={editForm.chofer}
+                    onChange={e => setEditForm({ ...editForm, chofer: e.target.value })}
+                    placeholder="Nombre del chofer asignado"
+                    className="w-full border border-slate-300 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100 rounded-lg px-3 py-2 text-sm"
+                  />
+                </div>
+              </div>
+
+              {/* Vencimientos */}
+              <div className="border-t border-slate-200 dark:border-slate-700 pt-3 mt-2">
+                <p className="text-xs font-bold text-slate-500 dark:text-slate-400 mb-2 uppercase tracking-wide">Vencimientos</p>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-600 dark:text-slate-400 mb-1">VTV vence</label>
+                    <input
+                      type="date"
+                      value={editForm.vtv_vencimiento}
+                      onChange={e => setEditForm({ ...editForm, vtv_vencimiento: e.target.value })}
+                      className="w-full border border-slate-300 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100 rounded-lg px-3 py-2 text-sm"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-600 dark:text-slate-400 mb-1">RTO vence</label>
+                    <input
+                      type="date"
+                      value={editForm.rto_vencimiento}
+                      onChange={e => setEditForm({ ...editForm, rto_vencimiento: e.target.value })}
+                      className="w-full border border-slate-300 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100 rounded-lg px-3 py-2 text-sm"
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-3 mt-2">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-600 dark:text-slate-400 mb-1">Seguro vence</label>
+                    <input
+                      type="date"
+                      value={editForm.seguro_vencimiento}
+                      onChange={e => setEditForm({ ...editForm, seguro_vencimiento: e.target.value })}
+                      className="w-full border border-slate-300 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100 rounded-lg px-3 py-2 text-sm"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-600 dark:text-slate-400 mb-1">RUTA vence</label>
+                    <input
+                      type="date"
+                      value={editForm.ruta_vencimiento}
+                      onChange={e => setEditForm({ ...editForm, ruta_vencimiento: e.target.value })}
+                      className="w-full border border-slate-300 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100 rounded-lg px-3 py-2 text-sm"
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-3 mt-2">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-600 dark:text-slate-400 mb-1">Compañía seguro</label>
+                    <input
+                      type="text"
+                      value={editForm.seguro_compania}
+                      onChange={e => setEditForm({ ...editForm, seguro_compania: e.target.value })}
+                      placeholder="Sancor, La Segunda..."
+                      className="w-full border border-slate-300 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100 rounded-lg px-3 py-2 text-sm"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-600 dark:text-slate-400 mb-1">Nº póliza</label>
+                    <input
+                      type="text"
+                      value={editForm.seguro_poliza}
+                      onChange={e => setEditForm({ ...editForm, seguro_poliza: e.target.value })}
+                      className="w-full border border-slate-300 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100 rounded-lg px-3 py-2 text-sm font-mono"
+                    />
+                  </div>
+                </div>
               </div>
 
               <label className="flex items-center gap-2 cursor-pointer pt-2">

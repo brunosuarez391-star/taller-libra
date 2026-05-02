@@ -71,17 +71,18 @@ export default function Ordenes({ ordenes, onRefresh }) {
 
   const handleEditar = (ot) => {
     setEditando(ot.id)
-    // Extraer patente y chofer de observaciones si existen
+    // patente/chofer son columnas reales; si vinieran de OTs viejas con regex,
+    // la migración ya las pasó a sus columnas — pero mantenemos un fallback.
     const obs = ot.observaciones || ''
-    const patMatch = obs.match(/PAT:\s*([^\|]+)/)
-    const choMatch = obs.match(/CHOFER:\s*([^\|]+)/)
+    const patFallback = obs.match(/PAT:\s*([^\|]+)/)?.[1]?.trim() || ''
+    const choFallback = obs.match(/CHOFER:\s*([^\|]+)/)?.[1]?.trim() || ''
     const cleanObs = obs.replace(/PAT:\s*[^\|]+\|?\s*/g, '').replace(/CHOFER:\s*[^\|]+\|?\s*/g, '').trim()
     setEditForm({
       km_ingreso: ot.km_ingreso,
       km_proximo: ot.km_proximo,
       mecanico: ot.mecanico,
-      chofer: choMatch ? choMatch[1].trim() : '',
-      patente: patMatch ? patMatch[1].trim() : '',
+      chofer: ot.chofer || choFallback,
+      patente: ot.patente || patFallback,
       observaciones: cleanObs,
       servicio_nombre: ot.servicio_nombre,
     })
@@ -90,16 +91,13 @@ export default function Ordenes({ ordenes, onRefresh }) {
   const handleGuardarEdicion = async (otId) => {
     setLoading(true)
     try {
-      const obs = [
-        editForm.patente ? `PAT: ${editForm.patente.toUpperCase()}` : '',
-        editForm.chofer ? `CHOFER: ${editForm.chofer}` : '',
-        editForm.observaciones || '',
-      ].filter(Boolean).join(' | ')
       await actualizarOT(otId, {
         km_ingreso: editForm.km_ingreso,
         km_proximo: editForm.km_proximo,
         mecanico: editForm.mecanico,
-        observaciones: obs,
+        patente: editForm.patente?.trim().toUpperCase() || null,
+        chofer: editForm.chofer?.trim() || null,
+        observaciones: editForm.observaciones || '',
         servicio_nombre: editForm.servicio_nombre,
       })
       setEditando(null)

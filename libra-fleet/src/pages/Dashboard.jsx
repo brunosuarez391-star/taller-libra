@@ -1,3 +1,5 @@
+import PanelVencimientos from '../components/PanelVencimientos'
+
 export default function Dashboard({ ordenes, vehiculos }) {
   const otActivas = ordenes.filter(o => o.estado !== 'Entregado')
   const otFinalizadas = ordenes.filter(o => o.estado === 'Finalizado' || o.estado === 'Entregado')
@@ -21,6 +23,8 @@ export default function Dashboard({ ordenes, vehiculos }) {
           </div>
         ))}
       </div>
+
+      <PanelVencimientos />
 
       <div className="bg-white dark:bg-slate-800 rounded-xl shadow p-5 border border-transparent dark:border-slate-700">
         <h3 className="text-lg font-bold text-[#1F3864] dark:text-blue-300 mb-4">Ordenes de Trabajo Recientes</h3>

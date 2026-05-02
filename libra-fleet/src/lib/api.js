@@ -688,3 +688,114 @@ export async function eliminarPresupuesto(id) {
   const { error: e2 } = await supabase.from('presupuestos').delete().eq('id', id)
   if (e2) throw e2
 }
+
+// ============ CONDUCTORES ============
+export async function getConductores() {
+  const { data, error } = await supabase
+    .from('conductores')
+    .select('*, clientes(nombre), vehiculos:vehiculo_actual_id(codigo, modelo, patente)')
+    .order('nombre')
+  if (error) throw error
+  return data || []
+}
+
+export async function crearConductor(c) {
+  const payload = {
+    nombre: c.nombre,
+    dni: c.dni || null,
+    telefono: c.telefono || null,
+    email: c.email || null,
+    licencia_numero: c.licencia_numero || null,
+    licencia_categoria: c.licencia_categoria || null,
+    licencia_vencimiento: c.licencia_vencimiento || null,
+    cliente_id: c.cliente_id || null,
+    vehiculo_actual_id: c.vehiculo_actual_id || null,
+    observaciones: c.observaciones || null,
+    activo: c.activo !== false,
+  }
+  const { data, error } = await supabase.from('conductores').insert(payload).select().single()
+  if (error) throw error
+  // Si hay vehículo asignado, sincronizar también vehiculos.chofer/chofer_telefono
+  if (data.vehiculo_actual_id) {
+    await supabase.from('vehiculos')
+      .update({ chofer: data.nombre, chofer_telefono: data.telefono })
+      .eq('id', data.vehiculo_actual_id)
+  }
+  dispararEvento('conductor_creado', { nombre: data.nombre, telefono: data.telefono }, 'flota')
+  return data
+}
+
+export async function actualizarConductor(id, campos) {
+  const { data, error } = await supabase.from('conductores').update(campos).eq('id', id).select().single()
+  if (error) throw error
+  if (data.vehiculo_actual_id) {
+    await supabase.from('vehiculos')
+      .update({ chofer: data.nombre, chofer_telefono: data.telefono })
+      .eq('id', data.vehiculo_actual_id)
+  }
+  return data
+}
+
+export async function eliminarConductor(id) {
+  const { error } = await supabase.from('conductores').delete().eq('id', id)
+  if (error) throw error
+}
+
+// ============ VENCIMIENTOS ============
+// Lee la view vencimientos_proximos (VTV/Seguro/RUTA/RTO ≤ 60 días)
+export async function getVencimientosProximos() {
+  const { data, error } = await supabase
+    .from('vencimientos_proximos')
+    .select('*')
+    .order('fecha_vencimiento', { ascending: true })
+  if (error) {
+    console.warn('vencimientos_proximos no disponible:', error.message)
+    return []
+  }
+  return data || []
+}
+
+// Actualizar vencimientos de un vehículo en bloque
+export async function actualizarVencimientosVehiculo(vehiculoId, campos) {
+  const payload = {}
+  if ('vtv_vencimiento' in campos) payload.vtv_vencimiento = campos.vtv_vencimiento || null
+  if ('seguro_vencimiento' in campos) payload.seguro_vencimiento = campos.seguro_vencimiento || null
+  if ('seguro_compania' in campos) payload.seguro_compania = campos.seguro_compania || null
+  if ('seguro_poliza' in campos) payload.seguro_poliza = campos.seguro_poliza || null
+  if ('ruta_vencimiento' in campos) payload.ruta_vencimiento = campos.ruta_vencimiento || null
+  if ('rto_vencimiento' in campos) payload.rto_vencimiento = campos.rto_vencimiento || null
+  if ('patente' in campos) payload.patente = campos.patente?.toUpperCase() || null
+  if ('chofer' in campos) payload.chofer = campos.chofer || null
+  if ('chofer_telefono' in campos) payload.chofer_telefono = campos.chofer_telefono || null
+  const { error } = await supabase.from('vehiculos').update(payload).eq('id', vehiculoId)
+  if (error) throw error
+}
+
+// ============ FACTURACIÓN → CONTADURÍA (cross-project sync) ============
+// Inserta una factura emitida del Fleet en arca_facturas_emitidas del proyecto Contaduría.
+// Requiere VITE_CONTADURIA_SYNC_URL apuntando a la Edge Function de Contaduría.
+export async function emitirFacturaContaduria(payload) {
+  const url = import.meta.env.VITE_CONTADURIA_SYNC_URL
+  if (!url) {
+    console.warn('VITE_CONTADURIA_SYNC_URL no configurada; factura no enviada a Contaduría')
+    return { status: 'skipped', motivo: 'sin_url' }
+  }
+  try {
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    })
+    const json = await res.json().catch(() => ({}))
+    dispararEvento('factura_a_contaduria', {
+      cliente: payload.cliente_nombre,
+      total: payload.total,
+      mes: payload.mes,
+      ok: res.ok,
+    }, 'facturacion')
+    return { status: res.ok ? 'ok' : 'error', http: res.status, response: json }
+  } catch (err) {
+    console.error('Sync Contaduría falló:', err)
+    return { status: 'error', error: err.message }
+  }
+}

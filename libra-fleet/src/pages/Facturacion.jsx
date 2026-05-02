@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react'
 import { jsPDF } from 'jspdf'
 import { obtenerPrecio, EMPRESA } from '../lib/data'
+import { emitirFacturaContaduria } from '../lib/api'
 
 export default function Facturacion({ ordenes, vehiculos, clientes, presupuestos = [] }) {
   const [mesSeleccionado, setMesSeleccionado] = useState(() => {
@@ -9,6 +10,68 @@ export default function Facturacion({ ordenes, vehiculos, clientes, presupuestos
   })
   const [clienteId, setClienteId] = useState('todos')
   const [verDetalle, setVerDetalle] = useState(null)
+  const [enviando, setEnviando] = useState(null)
+  const [enviadas, setEnviadas] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('libra_facturas_enviadas') || '{}') } catch { return {} }
+  })
+
+  const marcarEnviada = (key, info) => {
+    const next = { ...enviadas, [key]: { ...info, ts: new Date().toISOString() } }
+    setEnviadas(next)
+    try { localStorage.setItem('libra_facturas_enviadas', JSON.stringify(next)) } catch {
+      // ignore storage full
+    }
+  }
+
+  const enviarAContaduria = async (grupo, cliente) => {
+    const key = `${mesSeleccionado}-${cliente?.id || grupo.cliente}`
+    if (enviadas[key]) {
+      const ok = confirm(`Ya se envió esta factura a Contaduría el ${new Date(enviadas[key].ts).toLocaleString('es-AR')}. ¿Reenviar?`)
+      if (!ok) return
+    }
+    setEnviando(key)
+    try {
+      const cuit = cliente?.cuit || null
+      const neto21 = grupo.totalNeto
+      const iva21 = Math.round(neto21 * 0.21)
+      const total = neto21 + iva21
+
+      const result = await emitirFacturaContaduria({
+        origen: 'libra_fleet',
+        fleet_ref: key,
+        cliente_nombre: grupo.cliente,
+        cliente_cuit: cuit,
+        tipo: 'A',
+        punto_venta: 3,
+        concepto: 2,
+        fecha: new Date().toISOString().slice(0, 10),
+        neto_gravado_21: neto21,
+        iva_21: iva21,
+        total,
+        observaciones: `Facturación mensual ${mesNombre} - ${grupo.cliente}`,
+        ots_incluidas: grupo.ots.map(o => o.ot_numero),
+        presupuestos_incluidos: grupo.presupuestos.map(p => p.numero),
+        mes: mesSeleccionado,
+      })
+
+      if (result.status === 'ok') {
+        marcarEnviada(key, {
+          factura_id: result.response?.factura_id,
+          numero: result.response?.numero_formateado,
+          total: result.response?.total,
+        })
+        alert(`✅ Factura enviada a Contaduría\nNº ${result.response?.numero_formateado}\nTotal: $${result.response?.total?.toLocaleString('es-AR')}`)
+      } else if (result.status === 'skipped') {
+        alert(`⚠️ VITE_CONTADURIA_SYNC_URL no está configurada en Vercel. La factura no se envió.`)
+      } else {
+        alert(`❌ Error enviando a Contaduría: ${result.error || result.response?.error || 'desconocido'}`)
+      }
+    } catch (err) {
+      alert('Error: ' + err.message)
+    } finally {
+      setEnviando(null)
+    }
+  }
 
   // Filtrar OTs del mes seleccionado
   const otsMes = useMemo(() => {
@@ -433,14 +496,35 @@ export default function Facturacion({ ordenes, vehiculos, clientes, presupuestos
                   )}
 
                   {/* Subtotal global del cliente */}
-                  <div className="bg-[#D6E4F0] dark:bg-slate-900 rounded-lg p-3 text-right">
-                    <p className="text-xs text-slate-500 dark:text-slate-400">Subtotal {grupo.cliente}</p>
-                    <p className="text-xl font-bold font-mono text-[#1F3864] dark:text-blue-300">
-                      {formatARS(grupo.totalNeto)}
-                    </p>
-                    <p className="text-xs text-slate-500 dark:text-slate-400">
-                      + IVA 21%: {formatARS(Math.round(grupo.totalNeto * 0.21))}
-                    </p>
+                  <div className="bg-[#D6E4F0] dark:bg-slate-900 rounded-lg p-3 flex items-end justify-between gap-3">
+                    <div>
+                      <p className="text-xs text-slate-500 dark:text-slate-400">Subtotal {grupo.cliente}</p>
+                      <p className="text-xl font-bold font-mono text-[#1F3864] dark:text-blue-300">
+                        {formatARS(grupo.totalNeto)}
+                      </p>
+                      <p className="text-xs text-slate-500 dark:text-slate-400">
+                        + IVA 21%: {formatARS(Math.round(grupo.totalNeto * 0.21))} = <strong>{formatARS(grupo.totalNeto + Math.round(grupo.totalNeto * 0.21))} c/IVA</strong>
+                      </p>
+                    </div>
+                    {(() => {
+                      const cliente = clientes.find(c => c.nombre === grupo.cliente)
+                      const key = `${mesSeleccionado}-${cliente?.id || grupo.cliente}`
+                      const yaEnviada = enviadas[key]
+                      return (
+                        <button
+                          onClick={() => enviarAContaduria(grupo, cliente)}
+                          disabled={enviando === key}
+                          className={`px-4 py-2 rounded-lg font-bold text-sm shadow ${
+                            yaEnviada
+                              ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300 hover:bg-emerald-200'
+                              : 'bg-[#1F3864] text-white hover:bg-[#2E75B6]'
+                          } disabled:opacity-50`}
+                          title={yaEnviada ? `Enviada ${new Date(yaEnviada.ts).toLocaleString('es-AR')} (clic para reenviar)` : 'Enviar a Contaduría / ARCA'}
+                        >
+                          {enviando === key ? '⏳ Enviando...' : yaEnviada ? `✓ Enviada ${yaEnviada.numero || ''}` : '📤 Enviar a Contaduría'}
+                        </button>
+                      )
+                    })()}
                   </div>
                 </div>
               )}
