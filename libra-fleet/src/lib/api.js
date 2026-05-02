@@ -773,17 +773,25 @@ export async function actualizarVencimientosVehiculo(vehiculoId, campos) {
 
 // ============ FACTURACIÓN → CONTADURÍA (cross-project sync) ============
 // Inserta una factura emitida del Fleet en arca_facturas_emitidas del proyecto Contaduría.
-// Requiere VITE_CONTADURIA_SYNC_URL apuntando a la Edge Function de Contaduría.
+// Requiere VITE_CONTADURIA_SYNC_URL y VITE_FLEET_SYNC_TOKEN.
 export async function emitirFacturaContaduria(payload) {
   const url = import.meta.env.VITE_CONTADURIA_SYNC_URL
+  const token = import.meta.env.VITE_FLEET_SYNC_TOKEN
   if (!url) {
     console.warn('VITE_CONTADURIA_SYNC_URL no configurada; factura no enviada a Contaduría')
     return { status: 'skipped', motivo: 'sin_url' }
   }
+  if (!token) {
+    console.warn('VITE_FLEET_SYNC_TOKEN no configurado; factura no enviada a Contaduría')
+    return { status: 'skipped', motivo: 'sin_token' }
+  }
   try {
     const res = await fetch(url, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
       body: JSON.stringify(payload),
     })
     const json = await res.json().catch(() => ({}))
