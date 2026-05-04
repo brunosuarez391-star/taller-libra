@@ -8,7 +8,8 @@
     "build": "vite build && electron-builder",
     "build:vite": "vite build",
     "preview": "vite preview",
-    "dist": "npm run build:vite && electron-builder --dir"
+    "dist": "npm run build:vite && electron-builder --dir",
+    "setup:openclaw": "bash scripts/install-openclaw.sh"
   },
   "keywords": ["electron", "react", "fleet", "trucks", "vite"],
   "author": "libra-flota",
