@@ -1,5 +1,6 @@
 const { app, BrowserWindow, ipcMain } = require('electron')
 const path = require('path')
+const { spawn } = require('child_process')
 
 // Detect dev mode: app.isPackaged is false when running via `electron .`
 const isDev = !app.isPackaged
@@ -60,4 +61,48 @@ ipcMain.handle('fleet:updateVehicleStatus', async (_event, { id, status }) => {
 
 ipcMain.handle('app:getVersion', async () => {
   return app.getVersion()
+})
+
+// Launch `openclaw chat` in the user's default terminal. Requires OpenClaw
+// installed globally (see scripts/install-openclaw.sh).
+ipcMain.handle('openclaw:launchChat', async () => {
+  const platform = process.platform
+  try {
+    if (platform === 'darwin') {
+      spawn('osascript', [
+        '-e',
+        'tell application "Terminal" to do script "openclaw chat"',
+        '-e',
+        'tell application "Terminal" to activate',
+      ], { detached: true, stdio: 'ignore' }).unref()
+    } else if (platform === 'win32') {
+      spawn('cmd.exe', ['/c', 'start', '""', 'cmd', '/K', 'openclaw chat'], {
+        detached: true,
+        stdio: 'ignore',
+        shell: false,
+      }).unref()
+    } else {
+      const candidates = [
+        ['gnome-terminal', ['--', 'bash', '-c', 'openclaw chat; exec bash']],
+        ['konsole', ['-e', 'bash', '-c', 'openclaw chat; exec bash']],
+        ['xfce4-terminal', ['-e', 'bash -c "openclaw chat; exec bash"']],
+        ['xterm', ['-e', 'bash', '-c', 'openclaw chat; exec bash']],
+      ]
+      let lastErr = null
+      for (const [cmd, args] of candidates) {
+        try {
+          spawn(cmd, args, { detached: true, stdio: 'ignore' }).unref()
+          lastErr = null
+          break
+        } catch (err) {
+          lastErr = err
+        }
+      }
+      if (lastErr) throw lastErr
+    }
+    return { success: true }
+  } catch (err) {
+    console.error('[main] openclaw:launchChat failed:', err)
+    return { success: false, error: err.message }
+  }
 })

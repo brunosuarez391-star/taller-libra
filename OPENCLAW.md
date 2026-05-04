@@ -45,6 +45,23 @@ openclaw --help          # ver todos los comandos
 
 Documentación oficial: https://docs.openclaw.ai/
 
+## Botón en la app Electron
+
+La cabecera de Libra Flota incluye un botón **🦞 OpenClaw** que abre `openclaw chat` en una terminal del sistema (Terminal.app en macOS, `gnome-terminal`/`konsole`/`xterm` en Linux, `cmd` en Windows). Si OpenClaw no está instalado el botón muestra un aviso con las instrucciones de setup.
+
+## Workflow de n8n
+
+Hay un workflow de n8n (`Libra Flota — Ask OpenClaw`) que expone un webhook como puente al gateway local de OpenClaw:
+
+```
+POST https://<tu-n8n>/webhook/openclaw-ask
+Content-Type: application/json
+
+{ "prompt": "¿Cuántos camiones están en mantenimiento?" }
+```
+
+El workflow apunta a `http://localhost:19000/v1/agent/run` (placeholder). Verifica el endpoint real con `openclaw gateway info` y ajusta la URL si difiere. Requiere que n8n corra en la misma máquina que el daemon de OpenClaw.
+
 ## Notas
 
 - `--accept-risk` es obligatorio para `--non-interactive`: reconoce que un agente con acceso al sistema es potente y conlleva riesgo.

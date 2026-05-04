@@ -11,6 +11,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // App metadata
   getVersion: () => ipcRenderer.invoke('app:getVersion'),
 
+  // OpenClaw assistant
+  launchOpenclawChat: () => ipcRenderer.invoke('openclaw:launchChat'),
+
   // Platform info
   platform: process.platform,
 })

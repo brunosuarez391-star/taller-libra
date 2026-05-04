@@ -96,6 +96,17 @@ const styles = {
     background: '#0ea5e9',
     color: '#fff',
   },
+  clawButton: {
+    padding: '7px 14px',
+    border: '1px solid #f59e0b',
+    borderRadius: '8px',
+    cursor: 'pointer',
+    fontSize: '13px',
+    fontWeight: '600',
+    background: 'transparent',
+    color: '#fbbf24',
+    marginRight: '16px',
+  },
   loadingText: {
     textAlign: 'center',
     padding: '48px',
@@ -161,6 +172,18 @@ export default function App() {
     loadData()
   }, [])
 
+  async function handleOpenclawChat() {
+    if (!window.electronAPI?.launchOpenclawChat) return
+    const result = await window.electronAPI.launchOpenclawChat()
+    if (!result?.success) {
+      alert(
+        'No se pudo abrir OpenClaw. Verifica que esté instalado:\n\n' +
+        '  npm run setup:openclaw\n\n' +
+        (result?.error ? `Detalle: ${result.error}` : '')
+      )
+    }
+  }
+
   async function handleStatusChange(vehicle) {
     const next =
       vehicle.status === 'active' ? 'maintenance' :
@@ -185,9 +208,18 @@ export default function App() {
           <h1 style={styles.headerTitle}>Libra Flota</h1>
           <p style={styles.headerSub}>Sistema de Gestión de Flota de Camiones</p>
         </div>
-        <div style={{ fontSize: '12px', color: '#475569' }}>
-          {version && `v${version}`}&nbsp;&nbsp;|&nbsp;&nbsp;
-          {new Date().toLocaleDateString('es-ES', { day: '2-digit', month: 'long', year: 'numeric' })}
+        <div style={{ display: 'flex', alignItems: 'center' }}>
+          <button
+            style={styles.clawButton}
+            onClick={handleOpenclawChat}
+            title="Abrir asistente OpenClaw en una terminal"
+          >
+            🦞 OpenClaw
+          </button>
+          <div style={{ fontSize: '12px', color: '#475569' }}>
+            {version && `v${version}`}&nbsp;&nbsp;|&nbsp;&nbsp;
+            {new Date().toLocaleDateString('es-ES', { day: '2-digit', month: 'long', year: 'numeric' })}
+          </div>
         </div>
       </header>
 
