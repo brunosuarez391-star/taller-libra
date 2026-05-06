@@ -154,6 +154,9 @@ export default function Facturacion({ ordenes, vehiculos, clientes, presupuestos
     const doc = new jsPDF({ unit: 'mm', format: 'a4' })
     const W = 210
     let y = 15
+    const ensureSpace = (needed) => {
+      if (y + needed > 280) { doc.addPage(); y = 15 }
+    }
 
     // Header
     doc.setFillColor(31, 56, 100)
@@ -202,83 +205,170 @@ export default function Facturacion({ ordenes, vehiculos, clientes, presupuestos
     doc.text('Total c/IVA', 175, y + 11, { align: 'center' })
     y += 20
 
-    // Tabla por cliente
+    // Tabla por cliente con DESGLOSE COMPLETO de cada OT y cada presupuesto
     doc.setTextColor(0, 0, 0)
 
     for (const grupo of resumenPorCliente) {
-      if (y > 260) {
-        doc.addPage()
-        y = 15
-      }
+      ensureSpace(40)
 
       // Header del cliente
       doc.setFillColor(31, 56, 100)
-      doc.rect(10, y, W - 20, 8, 'F')
+      doc.rect(10, y, W - 20, 9, 'F')
       doc.setTextColor(255, 255, 255)
-      doc.setFontSize(10)
+      doc.setFontSize(11)
       doc.setFont('helvetica', 'bold')
-      doc.text(grupo.cliente, 12, y + 5.5)
-      doc.text(`${grupo.ots.length} OTs`, 100, y + 5.5)
-      doc.text(`Subtotal: ${formatARS(grupo.totalNeto)}`, W - 12, y + 5.5, { align: 'right' })
-      y += 10
+      doc.text(grupo.cliente, 12, y + 6)
+      const conteo = `${grupo.ots.length} OTs${grupo.presupuestos.length > 0 ? ` + ${grupo.presupuestos.length} presup.` : ''}`
+      doc.text(conteo, 100, y + 6)
+      doc.text(`Subtotal: ${formatARS(grupo.totalNeto)}`, W - 12, y + 6, { align: 'right' })
+      y += 11
 
-      // Headers tabla
-      doc.setFillColor(214, 228, 240)
-      doc.rect(10, y, W - 20, 6, 'F')
-      doc.setTextColor(31, 56, 100)
-      doc.setFontSize(7)
-      doc.setFont('helvetica', 'bold')
-      doc.text('OT', 12, y + 4)
-      doc.text('Fecha', 32, y + 4)
-      doc.text('Unidad', 52, y + 4)
-      doc.text('Patente', 80, y + 4)
-      doc.text('Servicio', 102, y + 4)
-      doc.text('M.O.', 150, y + 4, { align: 'right' })
-      doc.text('Insumos', 170, y + 4, { align: 'right' })
-      doc.text('Total', 198, y + 4, { align: 'right' })
-      y += 7
+      // ─── ÓRDENES DE TRABAJO con desglose ─────────────────────
+      if (grupo.ots.length > 0) {
+        ensureSpace(8)
+        doc.setFillColor(214, 228, 240)
+        doc.rect(10, y, W - 20, 6, 'F')
+        doc.setTextColor(31, 56, 100)
+        doc.setFontSize(8)
+        doc.setFont('helvetica', 'bold')
+        doc.text('🔧 ÓRDENES DE TRABAJO', 12, y + 4)
+        y += 8
 
-      // Filas
-      doc.setTextColor(0, 0, 0)
-      doc.setFont('helvetica', 'normal')
-      doc.setFontSize(7)
+        for (const ot of grupo.ots) {
+          ensureSpace(20)
+          // Cabecera de la OT
+          doc.setFillColor(248, 250, 252)
+          doc.rect(10, y, W - 20, 6, 'F')
+          doc.setTextColor(31, 56, 100)
+          doc.setFontSize(8)
+          doc.setFont('helvetica', 'bold')
+          doc.text(ot.ot_numero || '', 12, y + 4)
+          const fecha = new Date(ot.created_at).toLocaleDateString('es-AR')
+          doc.text(fecha, 35, y + 4)
+          const unidad = `${ot.vehiculos?.codigo || ''} ${ot.vehiculos?.modelo || ''}`.trim()
+          doc.text(unidad.substring(0, 18), 56, y + 4)
+          if (ot.patente) doc.text(`Pat. ${ot.patente}`, 88, y + 4)
+          if (ot.chofer) doc.text(`Chofer: ${String(ot.chofer).substring(0, 18)}`, 115, y + 4)
+          doc.text(formatARS(ot.total), 198, y + 4, { align: 'right' })
+          y += 7
 
-      for (const ot of grupo.ots) {
-        if (y > 275) {
-          doc.addPage()
-          y = 15
+          // Detalle de items (si tieneInsumos = items reales con precio)
+          if (ot.tieneInsumos && Array.isArray(ot.insumos_ot) && ot.insumos_ot.length > 0) {
+            doc.setTextColor(70, 70, 70)
+            doc.setFont('helvetica', 'normal')
+            doc.setFontSize(7)
+            for (const it of ot.insumos_ot) {
+              ensureSpace(5)
+              const desc = (it.descripcion || '').length > 70
+                ? it.descripcion.substring(0, 67) + '...' : it.descripcion || ''
+              const cant = Number(it.cantidad) || 1
+              const precio = Number(it.precio_unit) || 0
+              const sub = cant * precio
+              doc.text(`  • ${desc}`, 14, y + 3)
+              doc.text(`${cant}`, 150, y + 3, { align: 'right' })
+              doc.text(formatARS(precio), 170, y + 3, { align: 'right' })
+              doc.text(formatARS(sub), 198, y + 3, { align: 'right' })
+              y += 4.5
+            }
+          } else {
+            // Service preventivo: muestra MO + Insumos como 2 líneas
+            doc.setTextColor(70, 70, 70)
+            doc.setFont('helvetica', 'normal')
+            doc.setFontSize(7)
+            ensureSpace(5)
+            doc.text(`  • Mano de obra (${ot.servicio_nombre || 'Service'})`, 14, y + 3)
+            doc.text(formatARS(ot.mo), 198, y + 3, { align: 'right' })
+            y += 4.5
+            ensureSpace(5)
+            doc.text(`  • Insumos / repuestos`, 14, y + 3)
+            doc.text(formatARS(ot.insumos), 198, y + 3, { align: 'right' })
+            y += 4.5
+          }
+          y += 1
         }
-
-        const fecha = new Date(ot.created_at).toLocaleDateString('es-AR')
-        const unidad = `${ot.vehiculos?.codigo || ''} ${ot.vehiculos?.modelo || ''}`.trim()
-        const servicio = (ot.servicio_nombre || '').substring(0, 24)
-        const patente = ot.patente || '-'
-
-        doc.text(ot.ot_numero || '', 12, y + 4)
-        doc.text(fecha, 32, y + 4)
-        doc.text(unidad.substring(0, 15), 52, y + 4)
-        doc.text(patente.substring(0, 10), 80, y + 4)
-        doc.text(servicio, 102, y + 4)
-        doc.text(formatARS(ot.mo), 150, y + 4, { align: 'right' })
-        doc.text(formatARS(ot.insumos), 170, y + 4, { align: 'right' })
-        doc.text(formatARS(ot.total), 198, y + 4, { align: 'right' })
-
-        // Línea divisoria
-        doc.setDrawColor(230, 230, 230)
-        doc.line(10, y + 6, W - 10, y + 6)
-        y += 6
+        // Subtotal OTs del cliente
+        ensureSpace(8)
+        doc.setFillColor(238, 242, 246)
+        doc.rect(10, y, W - 20, 6, 'F')
+        doc.setFont('helvetica', 'bold')
+        doc.setTextColor(31, 56, 100)
+        doc.setFontSize(8)
+        doc.text(`Subtotal OTs (${grupo.ots.length})`, 12, y + 4)
+        doc.text(formatARS(grupo.totalMO + grupo.totalInsumos), 198, y + 4, { align: 'right' })
+        y += 8
       }
 
-      // Subtotal
-      doc.setFillColor(248, 250, 252)
-      doc.rect(10, y, W - 20, 6, 'F')
+      // ─── PRESUPUESTOS APROBADOS con desglose ─────────────────
+      if (grupo.presupuestos.length > 0) {
+        ensureSpace(10)
+        doc.setFillColor(220, 252, 231)
+        doc.rect(10, y, W - 20, 6, 'F')
+        doc.setTextColor(22, 101, 52)
+        doc.setFontSize(8)
+        doc.setFont('helvetica', 'bold')
+        doc.text('📋 PRESUPUESTOS APROBADOS', 12, y + 4)
+        y += 8
+
+        let subtotalPres = 0
+        for (const p of grupo.presupuestos) {
+          ensureSpace(15)
+          // Cabecera del presupuesto
+          doc.setFillColor(248, 250, 252)
+          doc.rect(10, y, W - 20, 6, 'F')
+          doc.setTextColor(31, 56, 100)
+          doc.setFontSize(8)
+          doc.setFont('helvetica', 'bold')
+          doc.text(p.numero || '', 12, y + 4)
+          const fechaPres = new Date(p.created_at || p.fecha).toLocaleDateString('es-AR')
+          doc.text(fechaPres, 35, y + 4)
+          if (p.remito_numero) doc.text(`Remito ${p.remito_numero}`, 56, y + 4)
+          doc.text(formatARS(p.total_civa), 198, y + 4, { align: 'right' })
+          y += 7
+
+          // Items del presupuesto
+          if (Array.isArray(p.items_presupuesto) && p.items_presupuesto.length > 0) {
+            doc.setTextColor(70, 70, 70)
+            doc.setFont('helvetica', 'normal')
+            doc.setFontSize(7)
+            for (const it of p.items_presupuesto) {
+              ensureSpace(5)
+              const desc = (it.descripcion || '').length > 70
+                ? it.descripcion.substring(0, 67) + '...' : it.descripcion || ''
+              const cant = Number(it.cantidad) || 1
+              const precio = Number(it.precio_unit ?? (it.total / (it.cantidad || 1))) || 0
+              const sub = Number(it.total) || (cant * precio)
+              doc.text(`  • ${desc}`, 14, y + 3)
+              doc.text(`${cant}`, 150, y + 3, { align: 'right' })
+              doc.text(formatARS(precio), 170, y + 3, { align: 'right' })
+              doc.text(formatARS(sub), 198, y + 3, { align: 'right' })
+              y += 4.5
+            }
+          }
+          subtotalPres += parseFloat(p.subtotal_siva || 0)
+          y += 1
+        }
+        // Subtotal presupuestos
+        ensureSpace(8)
+        doc.setFillColor(220, 252, 231)
+        doc.rect(10, y, W - 20, 6, 'F')
+        doc.setFont('helvetica', 'bold')
+        doc.setTextColor(22, 101, 52)
+        doc.setFontSize(8)
+        doc.text(`Subtotal presupuestos (${grupo.presupuestos.length})`, 12, y + 4)
+        doc.text(formatARS(subtotalPres), 198, y + 4, { align: 'right' })
+        y += 8
+      }
+
+      // Total del cliente
+      ensureSpace(10)
+      doc.setFillColor(31, 56, 100)
+      doc.rect(10, y, W - 20, 8, 'F')
+      doc.setTextColor(255, 255, 255)
+      doc.setFontSize(9)
       doc.setFont('helvetica', 'bold')
-      doc.setTextColor(31, 56, 100)
-      doc.text(`Subtotal ${grupo.cliente}`, 12, y + 4)
-      doc.text(formatARS(grupo.totalMO), 150, y + 4, { align: 'right' })
-      doc.text(formatARS(grupo.totalInsumos), 170, y + 4, { align: 'right' })
-      doc.text(formatARS(grupo.totalNeto), 198, y + 4, { align: 'right' })
-      y += 10
+      doc.text(`TOTAL ${grupo.cliente} (s/IVA)`, 12, y + 5.5)
+      doc.text(formatARS(grupo.totalNeto), 198, y + 5.5, { align: 'right' })
+      y += 12
     }
 
     // Totales finales

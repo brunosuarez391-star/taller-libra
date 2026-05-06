@@ -1,7 +1,8 @@
 import { useState, useMemo } from 'react'
-import { obtenerPrecio, SERVICIOS } from '../lib/data'
+import { obtenerPrecio, SERVICIOS, EMPRESA } from '../lib/data'
 import { crearPresupuestoCompleto, actualizarEstadoPresupuesto, actualizarRemitoPresupuesto, eliminarPresupuesto } from '../lib/api'
 import PresupuestoView from '../components/PresupuestoView'
+import { exportarPresupuestoPDF, whatsappTextoPresupuesto } from '../lib/presupuestoPDF'
 
 // Tipos de presupuesto
 const TIPOS = {
@@ -141,11 +142,28 @@ export default function Presupuestos({ vehiculos, clientes, presupuestos = [], o
     return <PresupuestoView presupuesto={presupuesto} onReset={reset} onGuardar={guardarPresupuesto} />
   }
 
+  const handleDuplicar = (p) => {
+    // Cargar el presupuesto en modo "nuevo" con todos los datos prellenados
+    setClienteId(p.cliente_id || '')
+    setVehiculoId(p.items_presupuesto?.[0]?.vehiculo_id || '')
+    setTipo(p.tipo || 'reparacion')
+    const itemsCargados = (p.items_presupuesto || []).map(it => ({
+      id: Math.random().toString(36).slice(2, 9),
+      descripcion: it.descripcion || '',
+      cantidad: Number(it.cantidad) || 1,
+      precio: Number(it.precio_unit ?? (it.total / (it.cantidad || 1))) || 0,
+    }))
+    setItems(itemsCargados.length > 0 ? itemsCargados : [lineaVacia()])
+    setObservaciones(`(Duplicado de ${p.numero}) ${p.observaciones || ''}`.trim())
+    setVista('nuevo')
+  }
+
   if (vista === 'lista') {
     return (
       <ListaPresupuestos
         presupuestos={presupuestos}
         onNuevo={() => setVista('nuevo')}
+        onDuplicar={handleDuplicar}
         onRefresh={onRefresh}
       />
     )
@@ -344,7 +362,8 @@ export default function Presupuestos({ vehiculos, clientes, presupuestos = [], o
 // ============================================================
 // Listado de presupuestos guardados
 // ============================================================
-function ListaPresupuestos({ presupuestos, onNuevo, onRefresh }) {
+function ListaPresupuestos({ presupuestos, onNuevo, onDuplicar, onRefresh }) {
+  const duplicar = (p) => onDuplicar?.(p)
   const [filtroEstado, setFiltroEstado] = useState('todos')
   const [filtroMes, setFiltroMes] = useState('todos')
   const [loading, setLoading] = useState(null)
@@ -520,6 +539,36 @@ function ListaPresupuestos({ presupuestos, onNuevo, onRefresh }) {
                     </p>
                   </div>
                   <div className="flex gap-1 flex-wrap items-center">
+                    <button
+                      onClick={() => exportarPresupuestoPDF(p)}
+                      className="bg-[#1F3864] hover:bg-[#2E75B6] text-white px-3 py-1 rounded-lg text-xs font-bold"
+                      title="Descargar PDF"
+                    >
+                      📄 PDF
+                    </button>
+                    {(() => {
+                      const tel = p.clientes?.telefono
+                      const url = tel ? whatsappTextoPresupuesto(p, tel) : null
+                      return url && (
+                        <a
+                          href={url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded-lg text-xs font-bold inline-block"
+                          title={`Enviar a ${tel}`}
+                        >
+                          📲 WhatsApp
+                        </a>
+                      )
+                    })()}
+                    <button
+                      onClick={() => duplicar(p)}
+                      disabled={loading === p.id}
+                      className="bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 px-3 py-1 rounded-lg text-xs font-bold hover:bg-blue-200 dark:hover:bg-blue-900/50 disabled:opacity-50"
+                      title="Duplicar como nuevo"
+                    >
+                      📋 Duplicar
+                    </button>
                     {p.estado !== 'aprobado' && (
                       <button
                         onClick={() => cambiarEstado(p.id, 'aprobado')}
