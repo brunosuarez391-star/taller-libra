@@ -21,7 +21,10 @@ export default function PresupuestoView({ presupuesto, onReset, onGuardar }) {
     }
   }
 
-  const yaGuardado = presupuesto.guardado || guardadoExito
+  const enModoEdicion = !!presupuesto.modoEdicion
+  // En modo edición, "yaGuardado" sólo aplica DESPUÉS de aplicar los cambios.
+  // Antes de hacerlo, mostramos "Actualizar cambios" aunque exista en DB.
+  const yaGuardado = enModoEdicion ? guardadoExito : (presupuesto.guardado || guardadoExito)
 
   const exportarPDF = () => exportarPresupuestoPDF(presupuesto)
 
@@ -41,10 +44,10 @@ export default function PresupuestoView({ presupuesto, onReset, onGuardar }) {
               } disabled:opacity-70`}
             >
               {guardando
-                ? '⏳ Guardando...'
+                ? (enModoEdicion ? '⏳ Actualizando...' : '⏳ Guardando...')
                 : yaGuardado
-                ? '✓ Guardado en el sistema'
-                : '💾 Guardar en el sistema'}
+                ? (enModoEdicion ? '✓ Cambios aplicados' : '✓ Guardado en el sistema')
+                : (enModoEdicion ? '💾 Aplicar cambios' : '💾 Guardar en el sistema')}
             </button>
           )}
           <button onClick={exportarPDF} className="bg-[#1F3864] hover:bg-[#2E75B6] text-white px-4 py-2 rounded-lg font-bold text-sm">

@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react'
 import { obtenerPrecio, SERVICIOS, EMPRESA } from '../lib/data'
-import { crearPresupuestoCompleto, actualizarEstadoPresupuesto, actualizarRemitoPresupuesto, eliminarPresupuesto } from '../lib/api'
+import { crearPresupuestoCompleto, actualizarPresupuestoCompleto, actualizarEstadoPresupuesto, actualizarRemitoPresupuesto, eliminarPresupuesto } from '../lib/api'
 import PresupuestoView from '../components/PresupuestoView'
 import { exportarPresupuestoPDF, whatsappTextoPresupuesto } from '../lib/presupuestoPDF'
 
@@ -27,6 +27,9 @@ export default function Presupuestos({ vehiculos, clientes, presupuestos = [], o
   const [items, setItems] = useState([lineaVacia()])
   const [observaciones, setObservaciones] = useState('')
   const [presupuesto, setPresupuesto] = useState(null)
+  // Si está seteado, estamos editando un presupuesto guardado existente
+  const [editandoId, setEditandoId] = useState(null)
+  const [editandoNumero, setEditandoNumero] = useState(null)
 
   const cliente = clientes.find(c => c.id === clienteId)
   const vehiculo = vehiculos.find(v => v.id === vehiculoId)
@@ -80,7 +83,9 @@ export default function Presupuestos({ vehiculos, clientes, presupuestos = [], o
     if (items.filter(it => it.descripcion && it.precio > 0).length === 0) {
       return alert('Agregá al menos un ítem con descripción y precio')
     }
-    const num = 'PP-' + new Date().getFullYear() + '-' + String(Math.floor(Math.random() * 999) + 1).padStart(3, '0')
+    // Si estamos editando, mantener el número original; si no, generar uno nuevo
+    const num = editandoNumero ||
+      ('PP-' + new Date().getFullYear() + '-' + String(Math.floor(Math.random() * 999) + 1).padStart(3, '0'))
     setPresupuesto({
       numero: num,
       cliente: cliente?.nombre,
@@ -98,8 +103,9 @@ export default function Presupuestos({ vehiculos, clientes, presupuestos = [], o
       total,
       observaciones,
       fecha: new Date().toLocaleDateString('es-AR'),
-      guardado: false,
-      guardado_id: null,
+      guardado: !!editandoId,           // si editamos, ya está guardado en DB
+      guardado_id: editandoId,
+      modoEdicion: !!editandoId,         // bandera para diferenciar "Guardar" vs "Actualizar"
     })
   }
 
@@ -107,31 +113,50 @@ export default function Presupuestos({ vehiculos, clientes, presupuestos = [], o
     setPresupuesto(null)
     setItems([lineaVacia()])
     setObservaciones('')
+    setEditandoId(null)
+    setEditandoNumero(null)
   }
 
   const guardarPresupuesto = async () => {
     if (!presupuesto) return
+    const payloadItems = presupuesto.items.map(it => ({
+      descripcion: it.descripcion,
+      cantidad: it.cantidad,
+      precio_unit: it.precio,
+    }))
     try {
-      const guardado = await crearPresupuestoCompleto({
-        numero: presupuesto.numero,
-        cliente_id: presupuesto.cliente_id,
-        vehiculo_id: presupuesto.vehiculo_id,
-        fecha: new Date().toISOString().slice(0, 10),
-        subtotal_siva: presupuesto.subtotal,
-        iva: presupuesto.iva,
-        total_civa: presupuesto.total,
-        estado: 'enviado',
-        validez_dias: 15,
-        condicion_pago: '30 días',
-        items: presupuesto.items.map(it => ({
-          descripcion: it.descripcion,
-          cantidad: it.cantidad,
-          precio_unit: it.precio,
-        })),
-      })
-      setPresupuesto({ ...presupuesto, guardado: true, guardado_id: guardado.id })
-      if (onRefresh) await onRefresh()
-      return guardado
+      if (editandoId) {
+        // UPDATE existing
+        await actualizarPresupuestoCompleto(editandoId, {
+          cliente_id: presupuesto.cliente_id,
+          vehiculo_id: presupuesto.vehiculo_id,
+          subtotal_siva: presupuesto.subtotal,
+          iva: presupuesto.iva,
+          total_civa: presupuesto.total,
+          items: payloadItems,
+        })
+        setPresupuesto({ ...presupuesto, guardado: true, guardado_id: editandoId })
+        if (onRefresh) await onRefresh()
+        return { id: editandoId }
+      } else {
+        // CREATE new
+        const guardado = await crearPresupuestoCompleto({
+          numero: presupuesto.numero,
+          cliente_id: presupuesto.cliente_id,
+          vehiculo_id: presupuesto.vehiculo_id,
+          fecha: new Date().toISOString().slice(0, 10),
+          subtotal_siva: presupuesto.subtotal,
+          iva: presupuesto.iva,
+          total_civa: presupuesto.total,
+          estado: 'enviado',
+          validez_dias: 15,
+          condicion_pago: '30 días',
+          items: payloadItems,
+        })
+        setPresupuesto({ ...presupuesto, guardado: true, guardado_id: guardado.id })
+        if (onRefresh) await onRefresh()
+        return guardado
+      }
     } catch (err) {
       alert('Error al guardar el presupuesto: ' + err.message)
       throw err
@@ -142,8 +167,8 @@ export default function Presupuestos({ vehiculos, clientes, presupuestos = [], o
     return <PresupuestoView presupuesto={presupuesto} onReset={reset} onGuardar={guardarPresupuesto} />
   }
 
-  const handleDuplicar = (p) => {
-    // Cargar el presupuesto en modo "nuevo" con todos los datos prellenados
+  // Helper para llenar el form con un presupuesto existente
+  const llenarFormDesde = (p) => {
     setClienteId(p.cliente_id || '')
     setVehiculoId(p.items_presupuesto?.[0]?.vehiculo_id || '')
     setTipo(p.tipo || 'reparacion')
@@ -154,7 +179,21 @@ export default function Presupuestos({ vehiculos, clientes, presupuestos = [], o
       precio: Number(it.precio_unit ?? (it.total / (it.cantidad || 1))) || 0,
     }))
     setItems(itemsCargados.length > 0 ? itemsCargados : [lineaVacia()])
+  }
+
+  const handleDuplicar = (p) => {
+    llenarFormDesde(p)
     setObservaciones(`(Duplicado de ${p.numero}) ${p.observaciones || ''}`.trim())
+    setEditandoId(null)
+    setEditandoNumero(null)
+    setVista('nuevo')
+  }
+
+  const handleEditar = (p) => {
+    llenarFormDesde(p)
+    setObservaciones(p.observaciones || '')
+    setEditandoId(p.id)
+    setEditandoNumero(p.numero)
     setVista('nuevo')
   }
 
@@ -162,8 +201,9 @@ export default function Presupuestos({ vehiculos, clientes, presupuestos = [], o
     return (
       <ListaPresupuestos
         presupuestos={presupuestos}
-        onNuevo={() => setVista('nuevo')}
+        onNuevo={() => { setEditandoId(null); setEditandoNumero(null); setVista('nuevo') }}
         onDuplicar={handleDuplicar}
+        onEditar={handleEditar}
         onRefresh={onRefresh}
       />
     )
@@ -172,13 +212,25 @@ export default function Presupuestos({ vehiculos, clientes, presupuestos = [], o
   return (
     <div>
       <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
-        <h2 className="text-2xl font-bold text-[#1F3864] dark:text-blue-300">Nuevo Presupuesto</h2>
-        <button
-          onClick={() => setVista('lista')}
-          className="bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 px-4 py-2 rounded-lg text-sm font-bold hover:bg-slate-200 dark:hover:bg-slate-600"
-        >
-          📋 Ver presupuestos guardados ({presupuestos.length})
-        </button>
+        <h2 className="text-2xl font-bold text-[#1F3864] dark:text-blue-300">
+          {editandoId ? `Editando presupuesto ${editandoNumero}` : 'Nuevo Presupuesto'}
+        </h2>
+        <div className="flex gap-2 flex-wrap">
+          {editandoId && (
+            <button
+              onClick={() => { reset(); setVista('lista') }}
+              className="bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300 px-4 py-2 rounded-lg text-sm font-bold hover:bg-yellow-200 dark:hover:bg-yellow-900/50"
+            >
+              ✕ Cancelar edición
+            </button>
+          )}
+          <button
+            onClick={() => setVista('lista')}
+            className="bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 px-4 py-2 rounded-lg text-sm font-bold hover:bg-slate-200 dark:hover:bg-slate-600"
+          >
+            📋 Ver presupuestos guardados ({presupuestos.length})
+          </button>
+        </div>
       </div>
 
       <div className="bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 rounded-xl shadow p-6 max-w-4xl">
@@ -352,7 +404,7 @@ export default function Presupuestos({ vehiculos, clientes, presupuestos = [], o
           disabled={!clienteId || subtotal === 0}
           className="w-full bg-[#1F3864] hover:bg-[#2E75B6] text-white py-3 rounded-lg font-bold text-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          ✓ Generar Presupuesto
+          {editandoId ? `✓ Ver cambios de ${editandoNumero}` : '✓ Generar Presupuesto'}
         </button>
       </div>
     </div>
@@ -362,8 +414,9 @@ export default function Presupuestos({ vehiculos, clientes, presupuestos = [], o
 // ============================================================
 // Listado de presupuestos guardados
 // ============================================================
-function ListaPresupuestos({ presupuestos, onNuevo, onDuplicar, onRefresh }) {
+function ListaPresupuestos({ presupuestos, onNuevo, onDuplicar, onEditar, onRefresh }) {
   const duplicar = (p) => onDuplicar?.(p)
+  const editar = (p) => onEditar?.(p)
   const [filtroEstado, setFiltroEstado] = useState('todos')
   const [filtroMes, setFiltroMes] = useState('todos')
   const [loading, setLoading] = useState(null)
@@ -561,6 +614,14 @@ function ListaPresupuestos({ presupuestos, onNuevo, onDuplicar, onRefresh }) {
                         </a>
                       )
                     })()}
+                    <button
+                      onClick={() => editar(p)}
+                      disabled={loading === p.id}
+                      className="bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 px-3 py-1 rounded-lg text-xs font-bold hover:bg-amber-200 dark:hover:bg-amber-900/50 disabled:opacity-50"
+                      title="Modificar este presupuesto"
+                    >
+                      ✏️ Editar
+                    </button>
                     <button
                       onClick={() => duplicar(p)}
                       disabled={loading === p.id}

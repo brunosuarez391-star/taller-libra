@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { ESTADOS_OT } from '../lib/data'
 import { actualizarEstadoOT, actualizarOT, actualizarRemitoOT, eliminarOT } from '../lib/api'
+import { exportarOTPDF, whatsappTextoOT } from '../lib/otPDF'
 import EtiquetaService from '../components/EtiquetaService'
 
 export default function Ordenes({ ordenes, onRefresh }) {
@@ -252,6 +253,28 @@ export default function Ordenes({ ordenes, onRefresh }) {
 
                 {/* Botones de acción */}
                 <div className="flex gap-2 flex-wrap">
+                  <button
+                    onClick={() => exportarOTPDF(ot)}
+                    className="bg-[#1F3864] hover:bg-[#2E75B6] text-white px-3 py-1.5 rounded-lg text-xs font-bold"
+                    title="Descargar OT en PDF"
+                  >
+                    📄 PDF
+                  </button>
+                  {(() => {
+                    const tel = ot.clientes?.telefono
+                    const url = tel ? whatsappTextoOT(ot, tel) : null
+                    return url && (
+                      <a
+                        href={url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="bg-green-600 hover:bg-green-700 text-white px-3 py-1.5 rounded-lg text-xs font-bold inline-block"
+                        title={`Enviar a ${tel}`}
+                      >
+                        📲 WhatsApp
+                      </a>
+                    )
+                  })()}
                   {editando !== ot.id && (
                     <button onClick={() => handleEditar(ot)} className="bg-slate-100 text-slate-600 px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-slate-200">
                       ✏️ Editar

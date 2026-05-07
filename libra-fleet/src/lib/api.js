@@ -666,6 +666,43 @@ export async function actualizarEstadoPresupuesto(id, estado) {
   if (error) throw error
 }
 
+/**
+ * Actualiza un presupuesto existente: cabecera + reemplaza items.
+ * payload = {
+ *   cliente_id?, vehiculo_id?, fecha?, subtotal_siva, iva, total_civa,
+ *   observaciones?, items: [{ descripcion, cantidad, precio_unit }]
+ * }
+ */
+export async function actualizarPresupuestoCompleto(id, payload) {
+  const { items = [], vehiculo_id, numero, ...cabecera } = payload
+
+  // 1) Update cabecera
+  const { error: e1 } = await supabase
+    .from('presupuestos')
+    .update(cabecera)
+    .eq('id', id)
+  if (e1) throw e1
+
+  // 2) Borrar items previos y reinsertar
+  const { error: e2 } = await supabase.from('items_presupuesto').delete().eq('presupuesto_id', id)
+  if (e2) throw e2
+
+  if (items.length > 0) {
+    const filas = items.map(it => ({
+      presupuesto_id: id,
+      vehiculo_id: vehiculo_id || null,
+      descripcion: it.descripcion,
+      mano_obra: 0,
+      insumos: 0,
+      total: (it.cantidad || 1) * (it.precio_unit || it.precio || 0),
+    }))
+    const { error: e3 } = await supabase.from('items_presupuesto').insert(filas)
+    if (e3) throw e3
+  }
+
+  return { id }
+}
+
 export async function actualizarRemitoPresupuesto(id, remito_numero, remito_fecha) {
   const { error } = await supabase
     .from('presupuestos')
