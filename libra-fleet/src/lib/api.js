@@ -142,9 +142,36 @@ export async function getOrdenesPorCodigo(codigo) {
   return data
 }
 
+// Intenta el INSERT y, si PostgREST tiene cache obsoleto y rechaza alguna
+// columna nueva, retira esa columna y reintenta. Idempotente y resiliente.
+async function insertOrdenResiliente(orden, intentos = 0) {
+  const { data, error } = await supabase
+    .from('ordenes_trabajo')
+    .insert(orden)
+    .select('*, vehiculos(codigo, modelo, tipo, categoria), clientes(nombre, telefono)')
+    .single()
+
+  if (!error) return { data, omitidas: [] }
+  if (intentos > 4) throw error
+
+  // Heurística: "Could not find the 'XYZ' column of 'ordenes_trabajo' in the schema cache"
+  const m = (error.message || '').match(/Could not find the '([^']+)' column/)
+  if (!m) throw error
+  const columnaConflictiva = m[1]
+  if (!(columnaConflictiva in orden)) throw error
+
+  // Quitamos la columna problemática y reintentamos
+  const { [columnaConflictiva]: _omitido, ...sinCol } = orden
+  const resultado = await insertOrdenResiliente(sinCol, intentos + 1)
+  resultado.omitidas.push(columnaConflictiva)
+  return resultado
+}
+
 export async function crearOrden(orden) {
-  const { data, error } = await supabase.from('ordenes_trabajo').insert(orden).select('*, vehiculos(codigo, modelo, tipo, categoria), clientes(nombre, telefono)').single()
-  if (error) throw error
+  const { data, omitidas } = await insertOrdenResiliente(orden)
+  if (omitidas.length > 0) {
+    console.warn('[crearOrden] columnas omitidas por cache obsoleto de PostgREST:', omitidas, '— corre `NOTIFY pgrst, \'reload schema\';` en Supabase para arreglarlo de forma definitiva.')
+  }
   const esPesada = data.vehiculos?.categoria === 'Camión Pesado' || data.vehiculos?.categoria === 'Tractor'
   const evento = esPesada ? 'flota_recepcion' : 'flota_liviana_recepcion'
   dispararEvento(evento, {
