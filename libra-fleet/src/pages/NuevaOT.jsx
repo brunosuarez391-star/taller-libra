@@ -99,12 +99,14 @@ export default function NuevaOT({ vehiculos, clientes, onCrear }) {
         ? itemsExtra.filter(it => it.descripcion.trim() && it.precio_unit > 0)
         : []
 
+      const intervaloKm = servicio?.intervaloKm ?? 20000
+
       const orden = {
         ot_numero: otNum,
         vehiculo_id: form.vehiculo_id,
         cliente_id: form.cliente_id,
         km_ingreso: kmNumero,
-        km_proximo: esReparacion ? kmNumero : kmNumero + 20000,
+        km_proximo: esReparacion ? kmNumero : kmNumero + intervaloKm,
         servicio_tipo: form.servicio,
         servicio_nombre: esReparacion ? 'Reparación / Trabajo extra' : servicio.nombre,
         tipo_servicio: esReparacion ? 'reparacion' : 'service',
@@ -149,7 +151,7 @@ export default function NuevaOT({ vehiculos, clientes, onCrear }) {
         patente: form.patente.toUpperCase(),
         chofer: form.chofer,
         km: kmNumero,
-        proximo_km: esReparacion ? kmNumero : kmNumero + 20000,
+        proximo_km: esReparacion ? kmNumero : kmNumero + intervaloKm,
         items: esReparacion ? itemsLimpios.map(it => `${it.descripcion} (x${it.cantidad})`) : servicio.items,
         itemsDetalle: itemsLimpios,
         totalItems: totalItems,
@@ -371,9 +373,9 @@ export default function NuevaOT({ vehiculos, clientes, onCrear }) {
                 : 'border-slate-300 focus:border-[#2E75B6]'
             }`}
           />
-          {kmNumero > 0 && !kmMenor && (
+          {kmNumero > 0 && !kmMenor && !esReparacion && (
             <p className="text-sm text-[#2E75B6] mt-1 font-bold">
-              ✓ Próximo service: {(kmNumero + 20000).toLocaleString('es-AR')} km
+              ✓ Próximo service: {(kmNumero + (servicio?.intervaloKm ?? 20000)).toLocaleString('es-AR')} km
             </p>
           )}
           {kmMenor && (

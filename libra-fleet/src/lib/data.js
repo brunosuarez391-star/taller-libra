@@ -88,6 +88,7 @@ export function obtenerPrecio(vehiculo) {
 export const SERVICIOS = {
   service_20k: {
     nombre: 'Service 20.000 km',
+    intervaloKm: 20000,
     items: [
       'Cambio de aceite motor + filtro de aceite',
       'Reemplazo filtro de aire y filtro de combustible',
@@ -100,8 +101,26 @@ export const SERVICIOS = {
     ],
     tiempo: '6-8 horas',
   },
+  service_30k: {
+    nombre: 'Service 30.000 km',
+    intervaloKm: 30000,
+    items: [
+      'Cambio de aceite motor + filtro de aceite',
+      'Reemplazo filtro de aire y filtro de combustible',
+      'Inspección y engrase general de puntos de lubricación',
+      'Control y ajuste de frenos (tambores/discos según modelo)',
+      'Revisión sistema de refrigeración y niveles',
+      'Control de tensión y estado de correas',
+      'Revisión de niveles de aceite caja y diferencial',
+      'Limpieza exterior con hidrolavadora',
+      'Diagnóstico general del vehículo',
+      'Material, transporte y mano de obra incluidos',
+    ],
+    tiempo: '8-10 horas',
+  },
   service_50k: {
     nombre: 'Service 50.000 km',
+    intervaloKm: 50000,
     items: [
       'Todo lo incluido en Service 20.000 km',
       'Cambio líquido refrigerante',
@@ -113,6 +132,7 @@ export const SERVICIOS = {
   },
   service_100k: {
     nombre: 'Service 100.000 km',
+    intervaloKm: 100000,
     items: [
       'Todo lo incluido en Service 50.000 km',
       'Cambio de correas',
@@ -124,6 +144,7 @@ export const SERVICIOS = {
   },
   reparacion: {
     nombre: 'Reparación / Trabajo extra',
+    intervaloKm: 0,
     items: [],
     tiempo: 'Variable',
     esExtra: true,
