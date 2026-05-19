@@ -10,6 +10,13 @@ export default function Facturacion({ ordenes, vehiculos, clientes, presupuestos
   })
   const [clienteId, setClienteId] = useState('todos')
   const [verDetalle, setVerDetalle] = useState(null)
+
+  // Lookup de vehículo por id — usado para enriquecer OTs y presupuestos con patente
+  const vehiculoPorId = useMemo(() => {
+    const map = {}
+    for (const v of vehiculos || []) map[v.id] = v
+    return map
+  }, [vehiculos])
   const [enviando, setEnviando] = useState(null)
   const [enviadas, setEnviadas] = useState(() => {
     try { return JSON.parse(localStorage.getItem('libra_facturas_enviadas') || '{}') } catch { return {} }
@@ -247,8 +254,8 @@ export default function Facturacion({ ordenes, vehiculos, clientes, presupuestos
           doc.text(fecha, 35, y + 4)
           const unidad = `${ot.vehiculos?.codigo || ''} ${ot.vehiculos?.modelo || ''}`.trim()
           doc.text(unidad.substring(0, 18), 56, y + 4)
-          // Fallback: si la OT no tiene patente cargada, usar la del vehículo
-          const patenteOT = ot.patente || ot.vehiculos?.patente
+          // Fallback: si la OT no tiene patente cargada, usar la del vehículo (lookup local)
+          const patenteOT = ot.patente || vehiculoPorId[ot.vehiculo_id]?.patente
           if (patenteOT) doc.text(`Pat. ${String(patenteOT).toUpperCase()}`, 88, y + 4)
           if (ot.chofer) doc.text(`Chofer: ${String(ot.chofer).substring(0, 18)}`, 115, y + 4)
           doc.text(formatARS(ot.total), 198, y + 4, { align: 'right' })
@@ -314,14 +321,14 @@ export default function Facturacion({ ordenes, vehiculos, clientes, presupuestos
         let subtotalPres = 0
         for (const p of grupo.presupuestos) {
           ensureSpace(15)
-          // Derivar unidad del presupuesto a partir de los items
-          // (todos los items deberían pertenecer a la misma unidad o varias distintas)
+          // Derivar unidad del presupuesto a partir de los items (lookup local)
           const unidadesDistintas = new Set()
           let infoVehiculo = null
           for (const it of (p.items_presupuesto || [])) {
-            if (it.vehiculos?.codigo) {
-              unidadesDistintas.add(it.vehiculos.codigo)
-              if (!infoVehiculo) infoVehiculo = it.vehiculos
+            const v = it.vehiculo_id ? vehiculoPorId[it.vehiculo_id] : null
+            if (v?.codigo) {
+              unidadesDistintas.add(v.codigo)
+              if (!infoVehiculo) infoVehiculo = v
             }
           }
           const labelUnidad = unidadesDistintas.size === 0
@@ -357,8 +364,9 @@ export default function Facturacion({ ordenes, vehiculos, clientes, presupuestos
               const precio = Number(it.precio_unit ?? (it.total / (it.cantidad || 1))) || 0
               const sub = Number(it.total) || (cant * precio)
               // Prefijo de unidad cuando hay múltiples vehículos en el mismo presupuesto
-              const prefijoUnidad = (unidadesDistintas.size > 1 && it.vehiculos?.codigo)
-                ? `[${it.vehiculos.codigo}${it.vehiculos.patente ? ' ' + String(it.vehiculos.patente).toUpperCase() : ''}] `
+              const vehItem = it.vehiculo_id ? vehiculoPorId[it.vehiculo_id] : null
+              const prefijoUnidad = (unidadesDistintas.size > 1 && vehItem?.codigo)
+                ? `[${vehItem.codigo}${vehItem.patente ? ' ' + String(vehItem.patente).toUpperCase() : ''}] `
                 : ''
               doc.text(`  • ${prefijoUnidad}${desc}`, 14, y + 3)
               doc.text(`${cant}`, 150, y + 3, { align: 'right' })

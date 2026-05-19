@@ -123,7 +123,7 @@ export async function eliminarVehiculo(vehiculoId) {
 
 // ============ ORDENES DE TRABAJO ============
 export async function getOrdenes() {
-  const { data, error } = await supabase.from('ordenes_trabajo').select('*, vehiculos(codigo, modelo, tipo, marca, categoria, patente), clientes(nombre, telefono), insumos_ot(*)').order('created_at', { ascending: false })
+  const { data, error } = await supabase.from('ordenes_trabajo').select('*, vehiculos(codigo, modelo, tipo, marca, categoria), clientes(nombre, telefono), insumos_ot(*)').order('created_at', { ascending: false })
   if (error) throw error
   return data
 }
@@ -302,7 +302,7 @@ export async function crearInsumosOT(otId, items) {
 export async function getPresupuestos() {
   const { data, error } = await supabase
     .from('presupuestos')
-    .select('*, clientes(nombre, telefono), items_presupuesto(*, vehiculos(codigo, marca, modelo, patente))')
+    .select('*, clientes(nombre, telefono), items_presupuesto(*)')
     .order('created_at', { ascending: false })
   if (error) throw error
   return data
