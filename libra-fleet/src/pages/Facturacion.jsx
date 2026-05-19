@@ -247,7 +247,9 @@ export default function Facturacion({ ordenes, vehiculos, clientes, presupuestos
           doc.text(fecha, 35, y + 4)
           const unidad = `${ot.vehiculos?.codigo || ''} ${ot.vehiculos?.modelo || ''}`.trim()
           doc.text(unidad.substring(0, 18), 56, y + 4)
-          if (ot.patente) doc.text(`Pat. ${ot.patente}`, 88, y + 4)
+          // Fallback: si la OT no tiene patente cargada, usar la del vehículo
+          const patenteOT = ot.patente || ot.vehiculos?.patente
+          if (patenteOT) doc.text(`Pat. ${String(patenteOT).toUpperCase()}`, 88, y + 4)
           if (ot.chofer) doc.text(`Chofer: ${String(ot.chofer).substring(0, 18)}`, 115, y + 4)
           doc.text(formatARS(ot.total), 198, y + 4, { align: 'right' })
           y += 7
@@ -312,6 +314,22 @@ export default function Facturacion({ ordenes, vehiculos, clientes, presupuestos
         let subtotalPres = 0
         for (const p of grupo.presupuestos) {
           ensureSpace(15)
+          // Derivar unidad del presupuesto a partir de los items
+          // (todos los items deberían pertenecer a la misma unidad o varias distintas)
+          const unidadesDistintas = new Set()
+          let infoVehiculo = null
+          for (const it of (p.items_presupuesto || [])) {
+            if (it.vehiculos?.codigo) {
+              unidadesDistintas.add(it.vehiculos.codigo)
+              if (!infoVehiculo) infoVehiculo = it.vehiculos
+            }
+          }
+          const labelUnidad = unidadesDistintas.size === 0
+            ? null
+            : unidadesDistintas.size === 1
+              ? `${infoVehiculo.codigo}${infoVehiculo.patente ? ' · ' + String(infoVehiculo.patente).toUpperCase() : ''}`
+              : `${unidadesDistintas.size} unidades`
+
           // Cabecera del presupuesto
           doc.setFillColor(248, 250, 252)
           doc.rect(10, y, W - 20, 6, 'F')
@@ -321,7 +339,8 @@ export default function Facturacion({ ordenes, vehiculos, clientes, presupuestos
           doc.text(p.numero || '', 12, y + 4)
           const fechaPres = new Date(p.created_at || p.fecha).toLocaleDateString('es-AR')
           doc.text(fechaPres, 35, y + 4)
-          if (p.remito_numero) doc.text(`Remito ${p.remito_numero}`, 56, y + 4)
+          if (labelUnidad) doc.text(labelUnidad.substring(0, 22), 56, y + 4)
+          if (p.remito_numero) doc.text(`Remito ${p.remito_numero}`, 120, y + 4)
           doc.text(formatARS(p.total_civa), 198, y + 4, { align: 'right' })
           y += 7
 
@@ -337,7 +356,11 @@ export default function Facturacion({ ordenes, vehiculos, clientes, presupuestos
               const cant = Number(it.cantidad) || 1
               const precio = Number(it.precio_unit ?? (it.total / (it.cantidad || 1))) || 0
               const sub = Number(it.total) || (cant * precio)
-              doc.text(`  • ${desc}`, 14, y + 3)
+              // Prefijo de unidad cuando hay múltiples vehículos en el mismo presupuesto
+              const prefijoUnidad = (unidadesDistintas.size > 1 && it.vehiculos?.codigo)
+                ? `[${it.vehiculos.codigo}${it.vehiculos.patente ? ' ' + String(it.vehiculos.patente).toUpperCase() : ''}] `
+                : ''
+              doc.text(`  • ${prefijoUnidad}${desc}`, 14, y + 3)
               doc.text(`${cant}`, 150, y + 3, { align: 'right' })
               doc.text(formatARS(precio), 170, y + 3, { align: 'right' })
               doc.text(formatARS(sub), 198, y + 3, { align: 'right' })
