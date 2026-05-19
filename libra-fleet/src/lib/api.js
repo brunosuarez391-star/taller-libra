@@ -230,9 +230,34 @@ async function notificarOTFinalizada(otId) {
   })
 }
 
+// UPDATE resiliente a cache obsoleto de PostgREST (mismo patrón que crearOrden).
+// Si rechaza alguna columna, la retira y reintenta hasta 4 veces.
+async function updateOrdenResiliente(otId, campos, intentos = 0) {
+  const { error } = await supabase
+    .from('ordenes_trabajo')
+    .update(campos)
+    .eq('id', otId)
+
+  if (!error) return { omitidas: [] }
+  if (intentos > 4) throw error
+
+  const m = (error.message || '').match(/Could not find the '([^']+)' column/)
+  if (!m) throw error
+  const columnaConflictiva = m[1]
+  if (!(columnaConflictiva in campos)) throw error
+
+  const { [columnaConflictiva]: _omitido, ...sinCol } = campos
+  const resultado = await updateOrdenResiliente(otId, sinCol, intentos + 1)
+  resultado.omitidas.push(columnaConflictiva)
+  return resultado
+}
+
 export async function actualizarOT(otId, campos) {
-  const { error } = await supabase.from('ordenes_trabajo').update({ ...campos, updated_at: new Date().toISOString() }).eq('id', otId)
-  if (error) throw error
+  const payload = { ...campos, updated_at: new Date().toISOString() }
+  const { omitidas } = await updateOrdenResiliente(otId, payload)
+  if (omitidas.length > 0) {
+    console.warn('[actualizarOT] columnas omitidas por cache obsoleto de PostgREST:', omitidas, '— corre `NOTIFY pgrst, \'reload schema\';` en Supabase para arreglarlo de forma definitiva.')
+  }
 
   // Si el campo actualizado incluye cambio a Finalizado, disparar notificación
   if (campos.estado === 'Finalizado') {
