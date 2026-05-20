@@ -6,6 +6,10 @@ import { CATEGORIAS_VEHICULO, MARCAS_COMUNES } from '../lib/data'
 export default function Vehiculos({ vehiculos, clientes = [], onRefresh }) {
   const [editandoKm, setEditandoKm] = useState(null)
   const [kmValue, setKmValue] = useState('')
+  const [editandoPatente, setEditandoPatente] = useState(null)
+  const [patenteValue, setPatenteValue] = useState('')
+  const [editandoChofer, setEditandoChofer] = useState(null)
+  const [choferValue, setChoferValue] = useState('')
   const [filtro, setFiltro] = useState('todos')
   const [editModal, setEditModal] = useState(null)
   const [editForm, setEditForm] = useState({})
@@ -19,6 +23,26 @@ export default function Vehiculos({ vehiculos, clientes = [], onRefresh }) {
     try {
       await actualizarKm(vehiculoId, parseInt(kmValue) || 0)
       setEditandoKm(null)
+      if (onRefresh) await onRefresh()
+    } catch (err) {
+      alert('Error: ' + err.message)
+    }
+  }
+
+  const handleGuardarPatente = async (vehiculoId) => {
+    try {
+      await actualizarVehiculo(vehiculoId, { patente: patenteValue.trim().toUpperCase() || null })
+      setEditandoPatente(null)
+      if (onRefresh) await onRefresh()
+    } catch (err) {
+      alert('Error: ' + err.message)
+    }
+  }
+
+  const handleGuardarChofer = async (vehiculoId) => {
+    try {
+      await actualizarVehiculo(vehiculoId, { chofer: choferValue.trim() || null })
+      setEditandoChofer(null)
       if (onRefresh) await onRefresh()
     } catch (err) {
       alert('Error: ' + err.message)
@@ -139,17 +163,81 @@ export default function Vehiculos({ vehiculos, clientes = [], onRefresh }) {
             <p className="text-slate-500 dark:text-slate-400 text-sm">{v.tipo} {v.anio && `· ${v.anio}`}</p>
             {v.clientes && <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">Cliente: {v.clientes.nombre}</p>}
 
-            {/* Patente / Chofer / Vencimientos */}
-            <div className="flex flex-wrap gap-1 mt-2 text-xs">
-              {v.patente && (
-                <span className="bg-slate-100 dark:bg-slate-900 text-slate-700 dark:text-slate-200 px-2 py-0.5 rounded font-mono">
-                  {v.patente}
-                </span>
+            {/* Patente editable inline */}
+            <div className="mt-2">
+              {editandoPatente === v.id ? (
+                <div className="flex gap-1 items-center bg-amber-50 dark:bg-amber-900/30 rounded p-1.5">
+                  <input
+                    type="text"
+                    value={patenteValue}
+                    onChange={e => setPatenteValue(e.target.value.toUpperCase())}
+                    placeholder="AB123CD"
+                    className="flex-1 border border-amber-300 dark:border-amber-700 bg-white dark:bg-slate-800 dark:text-slate-100 rounded px-2 py-1 text-sm font-mono uppercase"
+                    autoFocus
+                    onKeyDown={e => {
+                      if (e.key === 'Enter') handleGuardarPatente(v.id)
+                      if (e.key === 'Escape') setEditandoPatente(null)
+                    }}
+                  />
+                  <button onClick={() => handleGuardarPatente(v.id)} className="bg-amber-600 hover:bg-amber-700 text-white px-2 py-1 rounded text-xs font-bold">OK</button>
+                  <button onClick={() => setEditandoPatente(null)} className="text-slate-400 px-1 text-xs">✕</button>
+                </div>
+              ) : (
+                <div
+                  onClick={() => { setEditandoPatente(v.id); setPatenteValue(v.patente || '') }}
+                  className="flex items-center justify-between cursor-pointer hover:bg-amber-50 dark:hover:bg-amber-900/20 rounded px-2 py-1 -mx-2"
+                  title="Click para editar patente"
+                >
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase">Patente:</span>
+                    {v.patente ? (
+                      <span className="bg-amber-100 dark:bg-amber-900/40 text-amber-800 dark:text-amber-300 px-2 py-0.5 rounded font-mono font-bold text-sm">
+                        {v.patente}
+                      </span>
+                    ) : (
+                      <span className="text-xs text-slate-400 dark:text-slate-500 italic">Sin cargar — click para agregar</span>
+                    )}
+                  </div>
+                  <span className="text-slate-300 dark:text-slate-600 text-xs">✏️</span>
+                </div>
               )}
-              {v.chofer && (
-                <span className="bg-blue-50 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 px-2 py-0.5 rounded">
-                  👤 {v.chofer}
-                </span>
+            </div>
+
+            {/* Chofer editable inline */}
+            <div className="mt-1">
+              {editandoChofer === v.id ? (
+                <div className="flex gap-1 items-center bg-blue-50 dark:bg-blue-900/30 rounded p-1.5">
+                  <input
+                    type="text"
+                    value={choferValue}
+                    onChange={e => setChoferValue(e.target.value)}
+                    placeholder="Nombre del chofer"
+                    className="flex-1 border border-blue-300 dark:border-blue-700 bg-white dark:bg-slate-800 dark:text-slate-100 rounded px-2 py-1 text-sm"
+                    autoFocus
+                    onKeyDown={e => {
+                      if (e.key === 'Enter') handleGuardarChofer(v.id)
+                      if (e.key === 'Escape') setEditandoChofer(null)
+                    }}
+                  />
+                  <button onClick={() => handleGuardarChofer(v.id)} className="bg-blue-600 hover:bg-blue-700 text-white px-2 py-1 rounded text-xs font-bold">OK</button>
+                  <button onClick={() => setEditandoChofer(null)} className="text-slate-400 px-1 text-xs">✕</button>
+                </div>
+              ) : (
+                <div
+                  onClick={() => { setEditandoChofer(v.id); setChoferValue(v.chofer || '') }}
+                  className="flex items-center justify-between cursor-pointer hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded px-2 py-1 -mx-2"
+                  title="Click para editar chofer"
+                >
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase">Chofer:</span>
+                    {v.chofer ? (
+                      <span className="text-blue-700 dark:text-blue-300 text-xs">👤 {v.chofer}</span>
+                    ) : (
+                      <span className="text-xs text-slate-400 dark:text-slate-500 italic">Sin cargar</span>
+                    )}
+                  </div>
+                  <span className="text-slate-300 dark:text-slate-600 text-xs">✏️</span>
+                </div>
               )}
             </div>
             {(v.vtv_vencimiento || v.seguro_vencimiento || v.ruta_vencimiento) && (
