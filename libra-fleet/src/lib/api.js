@@ -108,12 +108,32 @@ export async function crearVehiculo(vehiculo) {
   return data
 }
 
-export async function actualizarVehiculo(vehiculoId, campos) {
+// UPDATE resiliente a cache obsoleto de PostgREST.
+async function updateVehiculoResiliente(vehiculoId, campos, intentos = 0) {
   const { error } = await supabase
     .from('vehiculos')
     .update(campos)
     .eq('id', vehiculoId)
-  if (error) throw error
+
+  if (!error) return { omitidas: [] }
+  if (intentos > 6) throw error
+
+  const m = (error.message || '').match(/Could not find the '([^']+)' column/)
+  if (!m) throw error
+  const columnaConflictiva = m[1]
+  if (!(columnaConflictiva in campos)) throw error
+
+  const { [columnaConflictiva]: _omitido, ...sinCol } = campos
+  const resultado = await updateVehiculoResiliente(vehiculoId, sinCol, intentos + 1)
+  resultado.omitidas.push(columnaConflictiva)
+  return resultado
+}
+
+export async function actualizarVehiculo(vehiculoId, campos) {
+  const { omitidas } = await updateVehiculoResiliente(vehiculoId, campos)
+  if (omitidas.length > 0) {
+    console.warn('[actualizarVehiculo] columnas omitidas por cache obsoleto de PostgREST:', omitidas, '— corre `NOTIFY pgrst, \'reload schema\';` en Supabase para arreglarlo de forma definitiva.')
+  }
 }
 
 export async function eliminarVehiculo(vehiculoId) {
